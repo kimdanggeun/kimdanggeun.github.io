@@ -764,7 +764,7 @@ function osmToPlace(el, snap) {
     r: [city, dist].filter(Boolean).join(' '), d: sub,
     why: '📡 OSM 실시간 발굴' + (sub ? ' · ' + sub : '') + (m ? ' · ' + (m >= 1000 ? (m / 1000).toFixed(1) + 'km' : m + 'm') : ''),
     t: fo ? ['실시간', '최근등록'] : ['실시간'], rt: true, osm: (el.type === 'node' ? 'n' : el.type === 'way' ? 'w' : 'r') + el.id,
-    lat: lat, lon: lon, fo: fo, v: el.timestamp ? String(el.timestamp).slice(0, 10) : ''
+    lat: lat, lon: lon, fo: fo, v: new Date().toISOString().slice(0, 10)
   });
 }
 async function fetchOverpass(center, radius) {
@@ -824,6 +824,7 @@ function nomiToPlace(row, snap) {
     n: name, c: kind, a: streetish ? rest.join(' ') : '', r: [city, gu].filter(Boolean).join(' ') || state.district || '',
     why: '📡 OSM 실시간 발굴' + (m ? ' · ' + (m >= 1000 ? (m / 1000).toFixed(1) + 'km' : m + 'm') : ''),
     t: ['실시간'], rt: true, osm: (r.osm_type === 'node' ? 'n' : r.osm_type === 'way' ? 'w' : 'r') + r.osm_id,
+    v: new Date().toISOString().slice(0, 10),
     lat: lat, lon: lon
   });
 }
