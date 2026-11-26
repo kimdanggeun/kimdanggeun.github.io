@@ -865,6 +865,11 @@ async function digMore(n) {
 async function liveDig() {
   const apiEl = document.getElementById('digApi');
   try {
+    // OSM에는 미쉐린·코스다이닝 같은 분류 정보가 없어, 파인다이닝 필터와 섞으면 오분류처럼 보인다.
+    if (state.cats.indexOf('fine') > -1) {
+      DIG.api = '📡 파인다이닝은 OSM에 분류 정보가 없어 실시간 발굴을 건너뜁니다 (DB 발굴만)';
+      renderDig(); return;
+    }
     const center = await centerForState();
     if (!center) { DIG.api = '📡 위치 확인 실패 → DB 미노출 풀에서 채움'; renderDig(); return; }
     const radius = state.district && /(시|군)$/.test(state.district) ? 2800 : 2000;
@@ -890,8 +895,7 @@ async function liveDig() {
       return 1 + kor + (p.a ? 1.5 : 0) + tasteScore(p);
     });
     const added = addDig(take);
-    if (added) DIG.api += ' → 새로 ' + added + '곳 발굴';
-    else DIG.api += ' → 이미 아는 곳뿐, DB 풀에서 채웠어요';
+    if (added) DIG.api += ' → 새로 ' + added + '곳 발굴';    else DIG.api += ' → 이미 아는 곳뿐, DB 풀에서 채웠어요';
     renderDig();
   } catch (e) {
     DIG.api = '📡 실시간 발굴 실패 → DB 풀에서 채움';
