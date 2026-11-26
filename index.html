@@ -333,7 +333,7 @@
   </div>
 </main>
 
-<p class="credits">🥕 김당근 미식 — 미식 지도 &amp; 맛집 검색기 · 가격·영업시간은 확인 시점 기준이니 방문 전 한 번 더 확인하세요. 별점·댓글·가봄 기록·취향 학습은 서버로 보내지 않고 이 브라우저(localStorage)에만 저장됩니다. 📡 실시간 발굴은 OpenStreetMap(Overpass·Photon) 공개 데이터를 씁니다.</p>
+<p class="credits">🥕 김당근 미식 — 미식 지도 &amp; 맛집 검색기 · 가격·영업시간은 확인 시점 기준이니 방문 전 한 번 더 확인하세요. 별점·댓글·가봄 기록·취향 학습은 서버로 보내지 않고 이 브라우저(localStorage)에만 저장됩니다. 📡 실시간 발굴은 OpenStreetMap(Overpass·Nominatim) 공개 데이터를 씁니다.</p>
 
 <div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="pName">
   <div class="picker">
@@ -451,7 +451,9 @@ const CATS = [
     test: p => /카페|디저트|베이커리|빵|떡|초콜릿|아이스크림|호떡|와플/.test(p.c) ||
                p.lsRaw.indexOf('카페·빵·디저트') > -1 },
   { id:'fine', label:'✨ 파인다이닝',
-    test: p => p.fine || /오마카세|테이스팅|파인다이닝|코스요리/.test(p.c + ' ' + p.n) },
+    // 이름에 '오마카세'만 붙은 체인 초밥집이 섮이지 않도록, 미쉐린·호텔·코스다이닝
+    // 큐레이션(data/fine.json → p.fine)으로만 판정한다.
+    test: p => !!p.fine },
   { id:'solo', label:'🍚 혼밥',
     test: p => p.t.indexOf('혼밥') > -1 || /혼밥|혼자/.test(p.m + ' ' + p.why) }
 ];
@@ -740,7 +742,8 @@ function osmToPlace(el, snap) {
   const addr = [city, dist, street, hno].filter(Boolean).join(' ');
   const m = Math.round(distanceKm(lat, lon, snap.lat, snap.lon) * 1000);
   return norm({
-    n: name, c: [cuis, kind].filter(Boolean).join(' · '), a: addr || (sub ? sub + ' (OSM 좌표)' : ''),
+    n: name, c: [cuis, kind].filter(Boolean).join(' · '),
+    a: street ? addr : (sub ? sub + ' (OSM 좌표)' : ''),
     r: [city, dist].filter(Boolean).join(' '), d: sub,
     why: '📡 OSM 실시간 발굴' + (sub ? ' · ' + sub : '') + (m ? ' · ' + (m >= 1000 ? (m / 1000).toFixed(1) + 'km' : m + 'm') : ''),
     t: ['실시간'], rt: true, osm: (el.type === 'node' ? 'n' : el.type === 'way' ? 'w' : 'r') + el.id,
@@ -797,10 +800,11 @@ function nomiToPlace(row, snap) {
   const rest = parts.filter(p => p !== name && !/^\d{5}$/.test(p) && !/대한민국|South Korea/.test(p));
   const gu = rest.filter(p => /(구|시|군)$/.test(p)).slice(-1)[0] || '';
   const city = rest.filter(p => /(특별시|광역시|특별자치시|특별자치도|도)$/.test(p)).slice(-1)[0] || '';
+  const streetish = rest.filter(p => /(로|길)\s*\d*$/.test(p) || /\d/.test(p)).length > 0;
   const m = Math.round(distanceKm(lat, lon, snap.lat, snap.lon) * 1000);
   const kind = r.type === 'cafe' ? '카페' : (r.type === 'bar' || r.type === 'pub') ? '술집' : r.type === 'fast_food' ? '패스트푸드' : '음식점';
   return norm({
-    n: name, c: kind, a: rest.join(' '), r: [city, gu].filter(Boolean).join(' ') || state.district || '',
+    n: name, c: kind, a: streetish ? rest.join(' ') : '', r: [city, gu].filter(Boolean).join(' ') || state.district || '',
     why: '📡 OSM 실시간 발굴' + (m ? ' · ' + (m >= 1000 ? (m / 1000).toFixed(1) + 'km' : m + 'm') : ''),
     t: ['실시간'], rt: true, osm: (r.osm_type === 'node' ? 'n' : r.osm_type === 'way' ? 'w' : 'r') + r.osm_id,
     lat: lat, lon: lon
@@ -881,7 +885,10 @@ async function liveDig() {
       if (!nn || DIG.ids.has(id) || DIG.names.has(nn) || DBNAMES.has(nn) || seen[id]) return false;
       return true;
     });
-    const take = weightedSample(fresh, 3, p => 1 + tasteScore(p));
+    const take = weightedSample(fresh, 3, p => {
+      const kor = /[가-힣]/.test(p.n) ? 2 : 0;
+      return 1 + kor + (p.a ? 1.5 : 0) + tasteScore(p);
+    });
     const added = addDig(take);
     if (added) DIG.api += ' → 새로 ' + added + '곳 발굴';
     else DIG.api += ' → 이미 아는 곳뿐, DB 풀에서 채웠어요';
