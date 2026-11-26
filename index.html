@@ -679,8 +679,7 @@ function distanceKm(aLat, aLon, bLat, bLon) {
 /* ── 실시간(OSM) 발굴 ────────────────────── */
 const OVERPASS = [
   'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
-  'https://overpass-api.de/api/interpreter',
-  'https://overpass.kumi.systems/api/interpreter'
+  'https://overpass-api.de/api/interpreter'
 ];
 const AREA_HINT = {
   '강원': '강원특별자치도 춘천시', '경기·인천': '경기도 수원시',
@@ -749,46 +748,63 @@ function osmToPlace(el, snap) {
   });
 }
 async function fetchOverpass(center, radius) {
-  const data = '[out:json][timeout:18];nwr["amenity"~"^(restaurant|cafe|bar|fast_food)$"]["name"](around:' +
-    radius + ',' + center.lat + ',' + center.lon + ');out center 400;';
-  for (let i = 0; i < OVERPASS.length; i++) {
+  const data = '[out:json][timeout:16];nwr["amenity"~"^(restaurant|cafe|bar|fast_food)$"]["name"](around:' +
+    radius + ',' + center.lat + ',' + center.lon + ');out center 150;';
+  const one = async url => {
     const ctl = new AbortController();
-    const to = setTimeout(() => ctl.abort(), 11000);
+    const to = setTimeout(() => ctl.abort(), 16000);
     try {
-      const r = await fetch(OVERPASS[i], {
+      const r = await fetch(url, {
         method: 'POST', body: 'data=' + encodeURIComponent(data),
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, signal: ctl.signal, cache: 'no-store'
       });
       clearTimeout(to);
+      if (!r.ok) return [];
+      const j = await r.json();
+      return (j && j.elements) || [];
+    } catch (e) { clearTimeout(to); return []; }
+  };
+  const res = await Promise.all(OVERPASS.map(one));
+  let best = [];
+  res.forEach(list => { if (list.length > best.length) best = list; });
+  return best;
+}
+/* Overpass가 밀릴 때의 2차 경로: OSM Nominatim (한글 주소·좌표 반환) */
+async function fetchNominatim(center) {
+  const vb = [center.lon - 0.035, center.lat + 0.03, center.lon + 0.035, center.lat - 0.03].join(',');
+  const out = [];
+  const kinds = ['restaurant', 'cafe'];
+  for (let i = 0; i < kinds.length; i++) {
+    const url = 'https://nominatim.openstreetmap.org/search?amenity=' + kinds[i] +
+      '&viewbox=' + vb + '&bounded=1&format=jsonv2&limit=25&accept-language=ko';
+    try {
+      const r = await fetch(url, { cache: 'no-store' });
       if (!r.ok) continue;
       const j = await r.json();
-      if (j && j.elements && j.elements.length) return j.elements;
-    } catch (e) { clearTimeout(to); }
+      if (Array.isArray(j)) j.forEach(row => out.push({ nomi: row, amen: kinds[i] }));
+    } catch (e) {}
+    await new Promise(res => setTimeout(res, 1100)); // Nominatim 이용예절: 초당 1요청
   }
-  return [];
+  return out;
 }
-async function fetchPhoton(center, keyword) {
-  const bb = [center.lon - 0.03, center.lat - 0.025, center.lon + 0.03, center.lat + 0.025].join(',');
-  const url = 'https://photon.komoot.io/api/?q=' + encodeURIComponent(keyword || '맛집') +
-    '&limit=30&bbox=' + bb + '&osm_tag=amenity:restaurant';
-  try {
-    const r = await fetch(url, { cache: 'no-store' });
-    if (!r.ok) return [];
-    const j = await r.json();
-    return (j.features || []).map(f => {
-      const pr = f.properties || {};
-      const name = (pr.name || '').trim();
-      if (!name) return null;
-      const addr = [pr.city, pr.district, pr.street, pr.housenumber].filter(Boolean).join(' ');
-      const m = Math.round(distanceKm(f.geometry.coordinates[1], f.geometry.coordinates[0], center.lat, center.lon) * 1000);
-      return norm({
-        n: name, c: CUISINE_KO[pr.osm_value] || '음식점', a: addr, r: [pr.city, pr.district].filter(Boolean).join(' '),
-        d: pr.locality || '', why: '📡 Photon 실시간 발굴' + (m ? ' · ' + (m >= 1000 ? (m / 1000).toFixed(1) + 'km' : m + 'm') : ''),
-        t: ['실시간'], rt: true, osm: pr.osm_type + pr.osm_id,
-        lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0]
-      });
-    }).filter(Boolean);
-  } catch (e) { return []; }
+function nomiToPlace(row, snap) {
+  const r = row.nomi || {};
+  const name = (r.name || '').trim();
+  if (!name) return null;
+  const lat = +r.lat, lon = +r.lon;
+  if (!lat || !lon) return null;
+  const parts = String(r.display_name || '').split(',').map(s => s.trim()).filter(Boolean);
+  const rest = parts.filter(p => p !== name && !/^\d{5}$/.test(p) && !/대한민국|South Korea/.test(p));
+  const gu = rest.filter(p => /(구|시|군)$/.test(p)).slice(-1)[0] || '';
+  const city = rest.filter(p => /(특별시|광역시|특별자치시|특별자치도|도)$/.test(p)).slice(-1)[0] || '';
+  const m = Math.round(distanceKm(lat, lon, snap.lat, snap.lon) * 1000);
+  const kind = r.type === 'cafe' ? '카페' : (r.type === 'bar' || r.type === 'pub') ? '술집' : r.type === 'fast_food' ? '패스트푸드' : '음식점';
+  return norm({
+    n: name, c: kind, a: rest.join(' '), r: [city, gu].filter(Boolean).join(' ') || state.district || '',
+    why: '📡 OSM 실시간 발굴' + (m ? ' · ' + (m >= 1000 ? (m / 1000).toFixed(1) + 'km' : m + 'm') : ''),
+    t: ['실시간'], rt: true, osm: (r.osm_type === 'node' ? 'n' : r.osm_type === 'way' ? 'w' : 'r') + r.osm_id,
+    lat: lat, lon: lon
+  });
 }
 
 /* ── 발굴 결과 렌더 ──────────────────────── */
@@ -847,7 +863,7 @@ async function liveDig() {
   try {
     const center = await centerForState();
     if (!center) { DIG.api = '📡 위치 확인 실패 → DB 미노출 풀에서 채움'; renderDig(); return; }
-    const radius = state.district && /(시|군)$/.test(state.district) ? 3200 : 2200;
+    const radius = state.district && /(시|군)$/.test(state.district) ? 2800 : 2000;
     DIG.api = '📡 ' + (center.label || '내 지역') + ' 주변 실시간 발굴 중…'; if (apiEl) apiEl.textContent = DIG.api;
     let places = [];
     const els = await fetchOverpass(center, radius);
@@ -855,9 +871,10 @@ async function liveDig() {
       places = els.map(el => osmToPlace(el, center)).filter(Boolean);
       DIG.api = '📡 OSM에서 ' + places.length + '곳 확인';
     } else {
-      const kw = state.q || (state.cats.map(id => ({ meat:'고기', japan:'초밥', cafe:'카페', guksu:'국밥' })[id])).filter(Boolean)[0] || '';
-      places = await fetchPhoton(center, kw);
-      DIG.api = places.length ? '📡 Photon에서 ' + places.length + '곳 확인' : '📡 실시간 API 응답 없음 → DB 풀에서 채움';
+      const rows = await fetchNominatim(center);
+      places = rows.map(row => nomiToPlace(row, center)).filter(Boolean);
+      DIG.api = places.length ? '📡 OSM(Nominatim)에서 ' + places.length + '곳 확인'
+                              : '📡 실시간 API 응답 없음 → DB 풀에서 채움';
     }
     const fresh = places.filter(p => {
       const id = pid(p), nn = normName(p.n);
