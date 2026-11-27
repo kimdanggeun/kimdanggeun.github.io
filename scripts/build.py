@@ -65,10 +65,9 @@ def build(write=True):
     # 지역 값은 항상 주소를 기준으로 다시 계산한다(발굴 목록의 reg 불일치로 다른 동네가 섞이던 문제)
     region_fixed = 0
     for rec in places + new_places:
-        if regions.apply(rec, 'r'):
-            region_fixed += 1
-        if 'reg' in rec and rec['reg'] != rec.get('r', ''):
-            rec['reg'] = rec.get('r', '')
+        # 발굴 목록은 'reg'(지역) · 'r'(평점), 지도 목록은 'r'(지역) 을 쓴다 — 섞으면 평점이 지역으로 덮인다
+        field = 'reg' if 'reg' in rec else 'r'
+        if regions.apply(rec, field):
             region_fixed += 1
         ov = verify.get(key_of(rec))
         if ov:

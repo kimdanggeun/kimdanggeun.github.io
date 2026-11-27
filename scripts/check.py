@@ -64,8 +64,9 @@ def main():
     mismatch = []
     for r in places + newp:
         sido, _ = regions.split_sido(r.get('a', ''))
-        if sido and not (r.get('r', '') or '').startswith(sido):
-            mismatch.append((r.get('n'), r.get('r'), r.get('a', '')[:30]))
+        reg = r.get('reg') if 'reg' in r else r.get('r', '')
+        if sido and not (reg or '').startswith(sido):
+            mismatch.append((r.get('n'), reg, r.get('a', '')[:30]))
     if mismatch:
         ok = False
         print('④ 지역 불일치 %d곳 (예: %s)' % (len(mismatch), mismatch[:3]))
