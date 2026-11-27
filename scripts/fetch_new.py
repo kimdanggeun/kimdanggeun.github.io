@@ -14,6 +14,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import fetch_menus as F  # http/load/save/nn/gu_of 재사용
+import regions
 
 ROOT = F.ROOT
 
@@ -100,7 +101,7 @@ def candidate_to_record(c):
         return None
     gu = F.gu_of(addr)
     rec = {
-        'n': name, 'c': cat, 'a': addr, 'r': gu, 'd': '', 'm': '',
+        'n': name, 'c': cat, 'a': addr, 'r': regions.canonical(addr, gu), 'd': '', 'm': '',
         's': '', 't': [], 'ls': [], 'fine': False, 'oma': False, 'mi': '',
         'v': F.TODAY, 'src': 'diningcode', 'drid': c.get('v_rid') or '',
     }

@@ -149,7 +149,8 @@ def parse_profile(html):
         menus.append([nm, price])
     hours = d.get('openingHours')
     if isinstance(hours, list):
-        hours = ' · '.join([h for h in hours if h])
+        hours = ' · '.join([h.strip() for h in hours if h and h.strip()])
+    hours = re.sub(r'(\s*·\s*)+$', '', (hours or '').strip())
     return {
         'name': d.get('name') or '',
         'addr': ((d.get('address') or {}).get('streetAddress') or ''),
@@ -190,10 +191,12 @@ def base_name(n):
     return BASE_SUFFIX.sub('', n or '').strip() or n
 
 
-def work_one(place, ridmap, cache, nf=None):
-    """returns (status, rid, patch) — status: 'menu'|'no-menu'|'not-found'"""
+def work_one(place, ridmap, cache, nf=None, map_only=False):
+    """returns (status, rid, patch) — status: 'menu'|'no-menu'|'not-found'|'mapped'"""
     key = nn(place.get('n')) + '|' + nn(place.get('a', ''))[:24]
     rid = ridmap.get(key)
+    if rid and map_only:
+        return 'mapped', rid, None
     if not rid and nf is not None and key in nf:
         return 'not-found', None, None
     if not rid:
@@ -211,6 +214,8 @@ def work_one(place, ridmap, cache, nf=None):
             return 'not-found', None, None
         rid = c.get('v_rid')
         ridmap[key] = rid
+        if map_only:
+            return 'mapped', rid, None
     info = cache.get(rid)
     if not info:
         html = http('https://www.diningcode.com/profile.php?rid=' + rid)
@@ -244,6 +249,7 @@ def main():
     ap.add_argument('--recheck', type=int, default=0, help='N일 지난 확인 건도 다시 확인')
     ap.add_argument('--max-blocked', type=int, default=25, help='빈 응답이 이만큼 나오면 중단')
     ap.add_argument('--delay', type=float, default=0.08, help='요청 사이 쉬는 시간(초)')
+    ap.add_argument('--map-only', action='store_true', help='가게↔다이닝코드 rid 연결만 미리 해 둔다(상세 페이지는 나중에)')
     args = ap.parse_args()
 
     places = load('places.json', [])
@@ -266,13 +272,20 @@ def main():
             continue
         if menu_ok(rec) and not stale(rec):
             continue
+        k = nn(rec.get('n')) + '|' + nn(rec.get('a', ''))[:24]
+        if args.map_only and (k in ridmap or k in nf):
+            continue
+        if not args.map_only and k in nf:
+            continue        # 이미 다이닝코드에 없는 가게로 확인됨
         targets.append(rec)
     # 확인한 지 오래된 곳 → 메뉴 없는 곳 순으로
-    targets.sort(key=lambda r: (menu_ok(r), r.get('v', '')))
+    ridmap_ref = ridmap
+    targets.sort(key=lambda r: (menu_ok(r), 0 if (nn(r.get('n')) + '|' + nn(r.get('a', ''))[:24]) in ridmap_ref else 1,
+                                r.get('v', '')))
     if not args.all and args.limit:
         targets = targets[:args.limit]
 
-    stats = {'menu': 0, 'no-menu': 0, 'not-found': 0, 'error': 0, 'blocked': 0}
+    stats = {'menu': 0, 'no-menu': 0, 'not-found': 0, 'error': 0, 'blocked': 0, 'mapped': 0}
     done = 0
     blocked = 0
     stop = False
@@ -294,7 +307,7 @@ def main():
                     rec = next(it)
                 except StopIteration:
                     break
-                inflight[ex.submit(safe_run, rec, ridmap, cache, nf)] = rec
+                inflight[ex.submit(safe_run, rec, ridmap, cache, nf, args.map_only)] = rec
                 time.sleep(args.delay)
             if not inflight:
                 break
@@ -321,16 +334,16 @@ def main():
                         stats['error'], stats['blocked'], time.time() - t0), flush=True)
 
     save_all()
-    print('완료 %d곳 · 메뉴 %d · 메뉴없음 %d · 미발견 %d · 오류 %d · 차단 %d · %ds' % (
-        done, stats['menu'], stats['no-menu'], stats['not-found'], stats['error'],
+    print('완료 %d곳 · 메뉴 %d · 메뉴없음 %d · 미발견 %d · 연결 %d · 오류 %d · 차단 %d · %ds' % (
+        done, stats['menu'], stats['no-menu'], stats['not-found'], stats['mapped'], stats['error'],
         stats['blocked'], time.time() - t0))
     if stop:
         print('※ 사이트가 응답을 비웠습니다(차단). 남은 %d곳은 다음 실행으로 미룹니다.' % (len(targets) - done))
 
 
-def safe_run(rec, ridmap, cache, nf):
+def safe_run(rec, ridmap, cache, nf, map_only=False):
     try:
-        return work_one(rec, ridmap, cache, nf)
+        return work_one(rec, ridmap, cache, nf, map_only)
     except Blocked as e:
         return 'blocked' + str(e), None, None
     except Exception as e:

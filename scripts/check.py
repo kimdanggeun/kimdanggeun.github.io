@@ -2,6 +2,9 @@
 """배포 전 검사 — ① 인라인 JS 문법(esprima) ② 개인정보 0건 ③ 데이터 위생."""
 import json, os, re, sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import regions
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 INDEX = os.path.join(ROOT, 'index.html')
 
@@ -56,6 +59,18 @@ def main():
         print('③ 데이터: 지운 곳이 남아 있음 →', [r['n'] for r in alive])
     else:
         print('③ 데이터: 삭제 요청 %d곳 모두 빠짐 · 전체 %s곳' % (len(dropped), format(len(places) + len(newp), ',')))
+
+    # ④ 지역 값이 주소와 맞는지 (지역 필터 오작동의 원인이었음)
+    mismatch = []
+    for r in places + newp:
+        sido, _ = regions.split_sido(r.get('a', ''))
+        if sido and not (r.get('r', '') or '').startswith(sido):
+            mismatch.append((r.get('n'), r.get('r'), r.get('a', '')[:30]))
+    if mismatch:
+        ok = False
+        print('④ 지역 불일치 %d곳 (예: %s)' % (len(mismatch), mismatch[:3]))
+    else:
+        print('④ 지역: 주소와 지역 값 모두 일치')
 
     menus = sum(1 for r in places + newp if r.get('p') and re.search(r'\d', r.get('p', '')))
     print('   대표메뉴·가격 표기: %s곳' % format(menus, ','))

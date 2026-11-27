@@ -8,6 +8,9 @@
 """
 import json, os, re, sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import regions
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -59,10 +62,20 @@ def build(write=True):
     new_places, rm2 = drop_removed(new_places, dropped)
     removed = rm1 + rm2
 
+    # 지역 값은 항상 주소를 기준으로 다시 계산한다(발굴 목록의 reg 불일치로 다른 동네가 섞이던 문제)
+    region_fixed = 0
     for rec in places + new_places:
+        if regions.apply(rec, 'r'):
+            region_fixed += 1
+        if 'reg' in rec and rec['reg'] != rec.get('r', ''):
+            rec['reg'] = rec.get('r', '')
+            region_fixed += 1
         ov = verify.get(key_of(rec))
         if ov:
             rec.update(ov)
+    if region_fixed and write:
+        save('places.json', places)
+        save('new-places.json', new_places)
 
     total = len(places) + len(new_places)
     html = template.replace('__NEW_PLACES__', json.dumps(new_places, ensure_ascii=False))
@@ -74,12 +87,15 @@ def build(write=True):
     if write:
         with open(os.path.join(ROOT, 'index.html'), 'w', encoding='utf-8') as f:
             f.write(html)
-    return {'total': total, 'places': len(places), 'new': len(new_places), 'removed': removed}
+    return {'total': total, 'places': len(places), 'new': len(new_places),
+            'removed': removed, 'region_fixed': region_fixed}
 
 
 if __name__ == '__main__':
     info = build()
     print(f"index.html 생성 · 전체 {info['total']:,}곳 (지도 {info['places']:,} + 발굴 {info['new']:,})")
+    if info['region_fixed']:
+        print(f"  지역 값 정정: {info['region_fixed']:,}건")
     if info['removed']:
         for p in info['removed']:
             print('  제외:', p.get('n'), '|', p.get('a', ''))
