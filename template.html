@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>🥕 김당근 미식 — 미식 지도 &amp; 맛집 검색기</title>
+<meta name="description" content="전국 3,400여 곳 미식 지도. 상호명·동네·메뉴·태그를 초성까지 실시간 검색하고, 취향 학습형 무한 발굴로 끝없이 새 맛집을 찾아보세요. 네이버지도·구글지도 바로가기 지원." />
+<meta property="og:title" content="🥕 김당근 미식 — 미식 지도 &amp; 맛집 검색기" />
+<meta property="og:description" content="전국 3,400여 곳 미식 지도 · 초성 검색 · 취향 학습 무한 발굴" />
+<meta name="theme-color" content="#0f1115" />
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --line:#2a2f3a;
+    --txt:#e8ecf3; --dim:#9aa3b2; --accent:#ff8a3d; --accent2:#ffd166;
+    --green:#3ecf8e; --blue:#5aa9ff; --mark:#ffd166;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:radial-gradient(1200px 620px at 15% -12%, #3a2210 0%, var(--bg) 58%) fixed;
+    color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Malgun Gothic",system-ui,sans-serif;
+    line-height:1.45; -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--blue);text-decoration:none}
+  mark{background:rgba(255,209,102,.22);color:var(--mark);border-radius:3px;padding:0 1px}
+
+  /* ── hero ───────────────────────────── */
+  header.hero{max-width:1180px;margin:0 auto;padding:26px 18px 6px}
+  .brand{display:flex;align-items:center;gap:12px}
+  .brand .logo{font-size:34px;line-height:1;filter:drop-shadow(0 4px 10px rgba(255,138,61,.35))}
+  h1{margin:0;font-size:26px;letter-spacing:-.6px;font-weight:800}
+  h1 .lil{font-size:14px;color:var(--dim);font-weight:500;letter-spacing:0;margin-left:2px}
+  .sub{color:var(--dim);font-size:13px;margin:6px 0 0}
+  .sub b{color:var(--accent2);font-weight:700}
+
+  .searchwrap{position:relative;margin:18px 0 10px}
+  .searchbar{
+    display:flex;align-items:center;gap:10px;background:linear-gradient(180deg,#20252f,#191d25);
+    border:1px solid #39404e;border-radius:16px;padding:4px 6px 4px 14px;
+    box-shadow:0 10px 30px rgba(0,0,0,.35), 0 0 0 1px rgba(255,138,61,.06);
+    transition:border-color .15s, box-shadow .15s;
+  }
+  .searchbar:focus-within{border-color:var(--accent);box-shadow:0 10px 34px rgba(255,138,61,.18)}
+  .searchbar .ic{font-size:19px;opacity:.85}
+  #q{
+    flex:1;min-width:0;background:transparent;border:0;outline:none;color:var(--txt);
+    font-size:16px;padding:14px 0;font-family:inherit;
+  }
+  #q::placeholder{color:#6f7888}
+  #qclear{
+    border:0;background:#2b313c;color:var(--dim);width:34px;height:34px;border-radius:10px;
+    cursor:pointer;font-size:14px;display:none;flex:0 0 auto
+  }
+  #qclear.on{display:block}
+  .quick{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--dim);margin:2px 0 12px}
+  .quick button{
+    background:var(--panel2);border:1px solid var(--line);color:#c9d2e0;border-radius:999px;
+    padding:5px 10px;font-size:12px;cursor:pointer;font-family:inherit
+  }
+  .quick button:hover{border-color:#4a5568;color:#fff}
+  .hitbar{
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--dim);
+    background:rgba(255,138,61,.07);border:1px solid rgba(255,138,61,.22);border-radius:12px;
+    padding:9px 12px;margin:0 0 14px
+  }
+  .hitbar b{color:var(--txt);font-size:15px}
+  .hitbar .q{color:var(--accent2);font-weight:700}
+  .hitbar button{margin-left:auto;background:transparent;border:1px solid var(--line);color:var(--dim);
+    border-radius:8px;padding:4px 9px;font-size:12px;cursor:pointer;font-family:inherit}
+
+  .stats{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:11.5px;color:var(--dim)}
+  .stat b{color:var(--txt);font-size:15px;display:block;line-height:1.2}
+  /* ── sticky controls ────────────────── */
+  .controls{
+    position:sticky;top:0;z-index:30;background:rgba(15,17,21,.95);backdrop-filter:blur(10px);
+    border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+    padding:9px 18px 10px;margin-top:14px
+  }
+  .controls .inner{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:7px}
+  .rowline{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .rowline .lab{font-size:11px;color:#6f7888;letter-spacing:.4px;margin-right:2px;flex:0 0 auto;width:34px}
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .sep{font-size:10.5px;color:#6f7888;letter-spacing:.6px;padding:0 2px 0 8px;margin-left:2px;
+    border-left:1px solid var(--line);align-self:center}
+  .chip{
+    background:var(--panel2);border:1px solid var(--line);color:#c3ccd9;border-radius:999px;
+    padding:6px 11px;cursor:pointer;user-select:none;font-size:12.5px;font-family:inherit;
+    display:inline-flex;align-items:center;gap:4px;line-height:1.2
+  }
+  .chip:hover{border-color:#46506180}
+  .chip[aria-pressed="true"]{background:linear-gradient(135deg,#ff8a3d,#ff5f6d);color:#1a0f08;border-color:transparent;font-weight:800}
+  .chip.ghost[aria-pressed="true"]{background:linear-gradient(135deg,#5aa9ff,#7f7bff);color:#0a1220}
+  .chip.rand{background:linear-gradient(135deg,#2b1f14,#3a2415);border-color:#6b4322;color:var(--accent2);font-weight:700}
+  .chip.rand:hover{border-color:var(--accent);color:#fff}
+  select{
+    background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:9px;
+    padding:7px 9px;font-size:12.5px;font-family:inherit;outline:none;max-width:200px
+  }
+
+  /* ── main / cards ───────────────────── */
+  main{max-width:1180px;margin:0 auto;padding:16px 18px 90px}
+  .meta{display:flex;justify-content:space-between;align-items:center;margin:2px 0 12px;color:var(--dim);font-size:12.5px;gap:10px;flex-wrap:wrap}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px}
+  .card{background:linear-gradient(180deg,var(--panel) 0%,var(--panel2) 100%);border:1px solid var(--line);
+    border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:8px}
+  .card.visited{outline:1px solid rgba(62,207,142,.5)}
+  .top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+  .name{font-size:15.5px;font-weight:700;letter-spacing:-.2px;margin:0}
+  .badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px}
+  .b{font-size:10.5px;padding:3px 7px;border-radius:999px;border:1px solid var(--line);color:var(--dim);white-space:nowrap}
+  .b.list{color:#ffd166;border-color:#5a4a1d}
+  .b.mi{background:#ffd166;color:#2a1f04;border-color:transparent;font-weight:800}
+  .b.oma{background:#ff8a3d;color:#1a0f08;border-color:transparent;font-weight:800}
+  .b.tag{color:#9fd3ff;border-color:#24405c}
+  .b.new{background:linear-gradient(135deg,#3ecf8e,#5aa9ff);color:#08131a;border-color:transparent;font-weight:800}
+  .verif{font-size:11px;color:#6f7888}
+  .cat{font-size:12px;color:var(--accent2)}
+  .addr{font-size:12px;color:var(--dim)}
+  .memo{font-size:12.5px;color:#c9d2e0;background:rgba(255,255,255,.04);border-left:2px solid var(--accent);
+    padding:6px 8px;border-radius:6px}
+  .why{font-size:12.5px;color:#cfe6ff}
+  .price{font-size:12.5px;color:var(--green)}
+  .menu{font-size:13px;color:var(--accent2);background:rgba(255,209,102,.07);border-left:2px solid var(--accent2);
+    border-radius:0 8px 8px 0;padding:5px 9px;margin:3px 0}
+  .row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .btn{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:9px;
+    padding:7px 10px;font-size:12px;cursor:pointer;text-decoration:none;display:inline-flex;gap:4px;align-items:center;font-family:inherit}
+  .btn:hover{border-color:#3d4a5c}
+  .btn.naver{border-color:#123c2a;background:#0e2a1f;color:#7ff0b6}
+  .btn.google{border-color:#1d3350;background:#101d2e;color:#9dc4ff}
+  .stars{display:flex;gap:2px;cursor:pointer;font-size:16px;line-height:1}
+  .stars span{color:#3a4150}
+  .stars span.on{color:#ffc93c}
+
+  /* ── 한줄 댓글 ──────────────────────── */
+  .cbox{border-top:1px dashed var(--line);padding-top:8px;margin-top:2px}
+  .clist{display:flex;flex-direction:column;gap:5px;margin-bottom:6px}
+  .clist:empty{display:none}
+  .cmt{font-size:12.3px;color:#cfd7e3;background:rgba(255,255,255,.035);border-radius:9px;
+    padding:6px 9px;display:flex;gap:6px;align-items:baseline}
+  .cmt .who{color:var(--accent2);font-weight:700;flex:0 0 auto;max-width:38%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cmt .txt{flex:1;min-width:0;word-break:break-word}
+  .cmt .when{color:#6f7888;font-size:10.5px;flex:0 0 auto}
+  .cmt .del{background:transparent;border:0;color:#5f6a7a;font-size:11px;cursor:pointer;padding:0 2px;line-height:1;font-family:inherit}
+  .cmt .del:hover{color:#ff8a8a}
+  .cform{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+  .cform input{
+    background:#12151b;border:1px solid var(--line);color:var(--txt);border-radius:9px;
+    padding:7px 9px;font-size:12.3px;font-family:inherit;outline:none;min-width:0
+  }
+  .cform input:focus{border-color:#4a5568}
+  .cform .ck{width:84px;flex:0 0 auto}
+  .cform .ct{flex:1 1 140px}
+  .cform button{background:var(--panel2);border:1px solid var(--line);color:#c3ccd9;border-radius:9px;
+    padding:7px 10px;font-size:12px;cursor:pointer;font-family:inherit;flex:0 0 auto}
+  .cform button:hover{border-color:var(--accent);color:#fff}
+
+  .foot{color:var(--dim);font-size:11.5px}
+  .more{display:block;width:100%;margin:18px 0 0;padding:13px;background:var(--panel2);border:1px dashed var(--line);
+    color:var(--txt);border-radius:12px;cursor:pointer;font-size:14px;font-family:inherit}
+  .more[hidden]{display:none}
+  .empty{color:var(--dim);padding:44px 0;text-align:center}
+  .empty[hidden]{display:none}
+  .empty b{display:block;color:var(--txt);font-size:15px;margin-bottom:8px}
+  .empty button{margin-top:10px;background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+    border-radius:10px;padding:8px 14px;cursor:pointer;font-family:inherit;font-size:13px}
+
+  /* ── random picker modal ────────────── */
+  .overlay{position:fixed;inset:0;background:rgba(6,8,12,.78);backdrop-filter:blur(4px);z-index:60;
+    display:none;align-items:center;justify-content:center;padding:18px}
+  .overlay.on{display:flex}
+  .picker{background:linear-gradient(180deg,#1c212b,#141821);border:1px solid #4a3524;border-radius:20px;
+    max-width:520px;width:100%;padding:18px;box-shadow:0 24px 60px rgba(0,0,0,.6);max-height:88vh;overflow:auto}
+  .picker .eyebrow{font-size:11.5px;color:var(--accent);letter-spacing:1px;font-weight:800}
+  .picker h2{margin:6px 0 2px;font-size:22px;letter-spacing:-.5px}
+  .picker .pmeta{color:var(--dim);font-size:12.5px;margin-bottom:10px}
+  .picker .pbody{display:flex;flex-direction:column;gap:7px;margin:8px 0 14px}
+  .picker .prow{display:flex;gap:7px;flex-wrap:wrap}
+  .picker .prow .btn{flex:1 1 auto;justify-content:center;padding:10px}
+  .picker .reroll{width:100%;margin-top:8px;background:linear-gradient(135deg,#ff8a3d,#ff5f6d);border:0;
+    color:#1a0f08;font-weight:800;border-radius:12px;padding:12px;cursor:pointer;font-size:14px;font-family:inherit}
+  .picker .close{background:transparent;border:0;color:var(--dim);font-size:20px;cursor:pointer;line-height:1;padding:0 4px}
+
+  .chip.dig{background:linear-gradient(135deg,#ffcf5c,#ff8a3d);color:#221204;border-color:transparent;font-weight:800}
+  .chip.dig:hover{filter:brightness(1.06)}
+  .chip.dig[disabled]{opacity:.6;cursor:progress}
+  .chip.dig2{background:linear-gradient(135deg,#12314a,#173a5c);border-color:#2b5a83;color:#9fd3ff;font-weight:700}
+  .chip.dig2[aria-pressed="true"]{background:linear-gradient(135deg,#5aa9ff,#7f7bff);color:#08121f;border-color:transparent;font-weight:800}
+  .b.rt{color:#9fd3ff;border-color:#24405c;font-weight:700}
+  .card.isrt{border-color:#24405c}
+
+  /* ── 무한 발굴 ─────────────────────── */
+  .digwrap{margin-top:26px;border-top:1px dashed #4a3524;padding-top:16px}
+  .digwrap[hidden]{display:none}
+  .dighead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+  .dighead b{font-size:16px;letter-spacing:-.3px}
+  .digstat{color:var(--dim);font-size:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .digmini{background:var(--panel2);border:1px solid var(--line);color:#c3ccd9;border-radius:8px;padding:5px 9px;font-size:11.5px;cursor:pointer;font-family:inherit}
+  .digmini:hover{border-color:var(--accent);color:#fff}
+  .digsrc{display:flex;gap:8px;flex-wrap:wrap;margin:-4px 0 12px}
+  .digsrc a{font-size:11.5px;color:#c3ccd9;text-decoration:none;border:1px dashed var(--line);border-radius:999px;padding:4px 10px}
+  .digsrc a:hover{border-color:var(--accent);color:#fff}
+
+  @media(max-width:560px){
+    h1{font-size:21px} .brand .logo{font-size:28px}
+    #q{font-size:15px;padding:12px 0}
+    .grid{grid-template-columns:1fr}
+    .rowline .lab{width:auto}
+    .controls{padding:8px 12px}
+    .quick{display:none}
+    .chips.scroll{flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch}
+    .chips.scroll::-webkit-scrollbar{display:none}
+    .chips.scroll .chip,.chips.scroll .sep{white-space:nowrap}
+  }
+  .credits{max-width:1180px;margin:0 auto;padding:0 18px 40px;color:#5f6a7a;font-size:11.5px}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="brand">
+    <span class="logo">🥕</span>
+    <div>
+      <h1>김당근 미식 <span class="lil">미식 지도 &amp; 맛집 검색기</span></h1>
+      <p class="sub">전국 <b id="subTotal">3,400</b>여 곳을 직접 확인해 모은 리스트. 상호명·동네·메뉴·태그를 <b>초성까지</b> 검색하고, <b>✨ 무한 발굴</b>로 끝없이 새 맛집을 캡니다. 최근 1년 안에 확인한 정보만 싣고, <b>2025~26 신상</b>은 🆕로 표시합니다.</p>
+    </div>
+  </div>
+
+  <div class="searchwrap">
+    <div class="searchbar">
+      <span class="ic">🔍</span>
+      <input id="q" type="search" inputmode="search" autocomplete="off" spellcheck="false"
+        placeholder="맛집 이름 · 동네 · 메뉴 · 태그  (예: 공덕, 밀면, ㄱㅁㅅ)" aria-label="맛집 통합 검색" />
+      <button id="qclear" title="검색어 지우기" aria-label="검색어 지우기">✕</button>
+    </div>
+  </div>
+
+  <div class="quick" id="quick">
+    <span>인기 검색</span>
+    <button data-q="공덕">공덕</button>
+    <button data-q="밀면">밀면</button>
+    <button data-q="게장">게장</button>
+    <button data-q="국밥">국밥</button>
+    <button data-q="전주">전주</button>
+    <button data-q="제주">제주</button>
+    <button data-q="카페">카페</button>
+    <button data-q="ㅅㅂ">초성 ㅅㅂ</button>
+  </div>
+
+  <div class="hitbar" id="hitbar">
+    <span id="hitText">전체 <b id="hitNum">0</b>곳</span>
+    <button id="resetAll">조건 초기화</button>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><b id="sTotal">0</b>전체 맛집</div>
+    <div class="stat"><b id="sNew">0</b>2025~26 신상</div>
+    <div class="stat"><b id="sRegions">0</b>지역(구·시)</div>
+    <div class="stat"><b id="sVisited">0</b>내가 다녀온 곳</div>
+  </div>
+</header>
+
+<div class="controls">
+  <div class="inner">
+    <div class="rowline">
+      <span class="lab">지역</span>
+      <div class="chips scroll" id="areaChips"></div>
+      <select id="fDistrict" aria-label="구·시 선택"><option value="">구·시 전체</option></select>
+    </div>
+    <div class="rowline">
+      <span class="lab">분류</span>
+      <div class="chips scroll" id="catChips"></div>
+    </div>
+    <div class="rowline">
+      <span class="lab">보기</span>
+      <div class="chips">
+        <button class="chip dig" id="digBtn">✨ 무한 발굴 (5곳)</button>
+        <button class="chip dig2" id="rtBtn" aria-pressed="false">📡 실시간 발굴</button>
+        <button class="chip rand" id="randBtn">🎲 랜덤 1곳</button>
+        <button class="chip ghost" id="onlyVisited" aria-pressed="false">⭐ 다녀온 곳만</button>
+        <button class="chip ghost" id="exportBtn">⬇️ 기록 내보내기</button>
+      </div>
+      <select id="sort" aria-label="정렬" style="margin-left:auto">
+        <option value="default">기본(추천순)</option>
+        <option value="mymark">내 별점 높은 순</option>
+        <option value="name">이름순</option>
+        <option value="area">지역순</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<main>
+  <div class="meta">
+    <span id="count">—</span>
+    <span id="hint">카드 아래에 한줄 댓글을 남길 수 있어요 · <b>/</b> 키로 바로 검색</span>
+  </div>
+  <div class="grid" id="grid"></div>
+  <button class="more" id="more" hidden>더 보기</button>
+
+  <section class="digwrap" id="digWrap" hidden>
+    <div class="dighead">
+      <div>
+        <b>✨ 무한 발굴</b>
+        <span class="digstat" id="digStat">—</span>
+      </div>
+      <div class="digstat">
+        <span id="digApi">📡 실시간 발굴 꺼짐</span>
+        <button class="digmini" id="digMore">+5곳 더</button>
+        <button class="digmini" id="digReset">발굴 기록 초기화</button>
+      </div>
+    </div>
+    <div class="digsrc" id="digSrc"></div>
+    <div class="grid" id="digGrid"></div>
+  </section>
+  <div class="empty" id="empty" hidden>
+    <b>조건에 맞는 맛집이 없어요</b>
+    <span id="emptyHint">검색어를 줄이거나 필터를 풀어보세요.</span>
+    <div><button id="resetAll2">조건 초기화</button></div>
+  </div>
+</main>
+
+<p class="credits">🥕 김당근 미식 — 미식 지도 &amp; 맛집 검색기 · 각 항목의 <b>확인일</b>(최근 1년 이내)을 함께 관리하고, 1년이 지난 정보는 자동으로 목록에서 뺍니다. 그래도 가격·영업시간은 바뀔 수 있으니 방문 전 한 번 더 확인하세요. 별점·댓글·가봄 기록·취향 학습은 서버로 보내지 않고 이 브라우저(localStorage)에만 저장됩니다. 📡 실시간 발굴은 OpenStreetMap(Overpass·Nominatim) 공개 데이터를 씁니다.</p>
+
+<div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="pName">
+  <div class="picker">
+    <div class="top">
+      <div>
+        <div class="eyebrow">🎲 오늘의 한 곳</div>
+        <h2 id="pName">—</h2>
+        <div class="pmeta" id="pMeta">—</div>
+      </div>
+      <button class="close" id="pClose" aria-label="닫기">✕</button>
+    </div>
+    <div class="pbody" id="pBody"></div>
+    <div class="prow">
+      <a class="btn naver" id="pNaver" target="_blank" rel="noopener">🗺️ 네이버지도</a>
+      <a class="btn google" id="pGoogle" target="_blank" rel="noopener">🌍 구글지도</a>
+    </div>
+    <button class="reroll" id="pReroll">🎲 다시 뽑기</button>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   🥕 김당근 미식 — 미식 지도 & 맛집 검색기
+   데이터: NEW_PLACES(직접 발굴) + PLACES(지도 리스트 전수)
+   ============================================================ */
+const NEW_PLACES = __NEW_PLACES__;
+const PLACES = __PLACES__;
+
+const KEY = 'kimdanggeun.food.v1';
+let store = {};
+try { store = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { store = {}; }
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) {} };
+
+const pid = p => p.osm ? 'o' + p.osm : p.sid ? 's' + p.sid : 'n' + (p.n + '|' + p.a).replace(/\s+/g, '').slice(0, 60);
+
+/* ── 초성 검색 유틸 ───────────────────────────── */
+const CHO = 'ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ';
+function chosungOf(str) {
+  let out = '';
+  for (let i = 0; i < str.length; i++) {
+    const c = str.charCodeAt(i);
+    if (c >= 0xAC00 && c <= 0xD7A3) out += CHO.charAt(Math.floor((c - 0xAC00) / 588));
+    else out += str.charAt(i);
+  }
+  return out;
+}
+const CHO_RE = /^[ㄱ-ㅎ]+$/;
+const isChosung = q => CHO_RE.test(q);
+
+/* ── 지역 분류 ───────────────────────────────── */
+const DONG_GONGDEOK = ['공덕동','아현동','도화동','신수동','마포동','염리동','노고산동','대흥동','토정동','신공덕동'];
+const DONG_HONGDAE = ['서교동','동교동','연남동','성산동','망원동','합정동','상암동','창전동','상수동','용강동','현석동','중동','노고산동'];
+function dongOf(p) {
+  if (p.d) return p.d;
+  const a = p.a || '';
+  const m = /([가-힣0-9]+동)(?=\s|,|\d|$)/.exec(a);
+  if (m) return m[1];
+  const hint = /(공덕|연남|망원|합정|상수|서교|이태원|성수|신촌|홍대)/.exec(a);
+  return hint ? hint[1] : '';
+}
+
+/* 서울은 구 묶음(가나다순), 그 밖은 시·도 권역(가나다순) */
+const SEOUL_CLUSTERS = [
+  ['강남·서초·송파', ['강남구','서초구','송파구']],
+  ['강동·광진·성동', ['강동구','광진구','성동구']],
+  ['강북·도봉·노원', ['강북구','도봉구','노원구']],
+  ['강서·양천', ['강서구','양천구']],
+  ['관악·동작', ['관악구','동작구']],
+  ['구로·금천·영등포', ['구로구','금천구','영등포구']],
+  ['동대문·성북·중랑', ['동대문구','성북구','중랑구']],
+  ['마포·공덕', null],
+  ['서대문·은평', ['서대문구','은평구']],
+  ['용산·이태원', ['용산구']],
+  ['종로·중구', ['종로구','중구']],
+  ['홍대·연남', null]
+];
+const NAT_AREAS = ['강원', '경기·인천', '경상·부산·대구·울산', '전라·광주', '제주', '충청·대전·세종'];
+const AREAS = ['전체', '서울 전체'].concat(SEOUL_CLUSTERS.map(c => c[0]), NAT_AREAS);
+function areaOf(p) {
+  const r = p.r || '';
+  if (r.indexOf('서울특별시') === 0) {
+    const gu = (r.split(/\s+/)[1] || '');
+    if (gu === '마포구') return DONG_HONGDAE.indexOf(dongOf(p)) > -1 ? '홍대·연남' : '마포·공덕';
+    for (let i = 0; i < SEOUL_CLUSTERS.length; i++) {
+      const gus = SEOUL_CLUSTERS[i][1];
+      if (gus && gus.indexOf(gu) > -1) return SEOUL_CLUSTERS[i][0];
+    }
+    return '서울 그 외';
+  }
+  if (r.indexOf('경기도') === 0 || r.indexOf('인천광역시') === 0) return '경기·인천';
+  if (r.indexOf('강원특별자치도') === 0) return '강원';
+  if (/^(부산광역시|대구광역시|울산광역시|경상북도|경상남도)/.test(r)) return '경상·부산·대구·울산';
+  if (r.indexOf('전남광주통합특별시') === 0 || r.indexOf('전북특별자치도') === 0 ||
+      r.indexOf('전라남도') === 0 || r.indexOf('광주광역시') === 0 || r.indexOf('전라북도') === 0) return '전라·광주';
+  if (r.indexOf('제주특별자치도') === 0) return '제주';
+  if (/^(대전광역시|세종특별자치시|충청북도|충청남도)/.test(r)) return '충청·대전·세종';
+  return '기타';
+}
+
+/* ── 카테고리(분류 칩) — 한글 가나다순 ─────────────── */
+const CATS = [
+  { id:'meat', label:'🥩 고기·술집',
+    test: p => /육류|고기|구이|삼겹|곱창|막창|갈비|족발|보쌈|닭갈비|양꼬치|주점|호프|이자카야|맥주/.test(p.c) ||
+               p.lsRaw.indexOf('술집') > -1 },
+  { id:'guksu', label:'🍜 국밥·국수·노포',
+    test: p => /국밥|순대|설렁탕|곰탕|국수|칼국수|냉면|밀면|막국수|백반|노포|찌개|전골|한식/.test(p.c) },
+  { id:'bunsik', label:'🍱 돈까스·분식',
+    // 돈까스·카츠·떡볶이·김밥·쫄면·튀김·만두처럼 가볍게 한 끼 하는 집.
+    // build.py가 이름·카테고리·대표메뉴를 보고 '분식' 태그를 붙여 둔다(p.c).
+    test: p => /돈까스|돈가스|카츠|떡볶이|김밥|분식|쫄면|튀김|만두|꽈배기|핫도그|어묵/.test(p.c) ||
+               p.t.indexOf('분식') > -1 },
+  { id:'michelin', label:'⭐ 미슐랭',
+    // 미쉐린 가이드 서울·부산 2026 등재(스타·빕 구르망·셀렉티드)만. data/michelin.json → p.mi
+    test: p => !!p.mi },
+  { id:'buffet', label:'♾️ 뷔페·리필',
+    test: p => p.lsRaw.indexOf('뷔페·리필') > -1 || p.t.indexOf('리필·무한') > -1 ||
+               /뷔페|리필|무한/.test(p.c + ' ' + p.m + ' ' + p.price) },
+  { id:'omakase', label:'🍣 오마카세',
+    // 카운터 오마카세(스시·한우·덴푸라·가이세키)만. 큐레이션 data/omakase.json → p.oma
+    test: p => !!p.oma },
+  { id:'japan', label:'🍥 일식·라멘',
+    // 라멘·초밥·우동·사시미·장어. 돈까스·카츠는 🍱 돈까스·분식으로 뺐다.
+    test: p => /일식|초밥|스시|라멘|사시미|생선회|오뎅|우동|장어|소바|텐동|돈부리|규동|덮밥/.test(p.c) ||
+               p.t.indexOf('일식·라멘') > -1 },
+  { id:'chinese', label:'🥟 중식',
+    // 짜장·짬뽕·마라·딤섬·중화요리. build.py가 이름·카테고리·대표메뉴를 보고 '중식당' 태그를 붙인다.
+    test: p => /중식|중국|중화|짜장|짬뽕|마라|딤섬|탕수육|훠궈|깐풍|유린기|멘보샤|우육면|도삭|동파육|꿔바로우|중깐/.test(p.c) ||
+               p.t.indexOf('중식') > -1 },
+  { id:'cafe', label:'☕ 카페·디저트',
+    test: p => /카페|디저트|베이커리|빵|떡|초콜릿|아이스크림|호떡|와플/.test(p.c) ||
+               p.lsRaw.indexOf('카페·빵·디저트') > -1 },
+  { id:'fine', label:'✨ 파인다이닝',
+    // 코스·컨템퍼러리·프렌치·모던 한식·호텔 다이닝만. 카운터 오마카세는 🍣 오마카세로
+    // 빠지고, 미쉐린 등재는 ⭐ 미슐랭으로 따로 표시된다. (data/fine.json → p.fine)
+    test: p => !!p.fine },
+  { id:'solo', label:'🍚 혼밥',
+    test: p => p.t.indexOf('혼밥') > -1 || /혼밥|혼자/.test(p.m + ' ' + p.why) }
+];
+const CATBY = {};
+CATS.forEach(c => { CATBY[c.id] = c; });
+
+/* ── 데이터 정규화 ───────────────────────────── */
+const LIST_LABEL = { '뷔페·리필':'♾️ 뷔페·리필', '지방 리필':'♾️ 지방 리필', '파인다이닝':'✨ 파인다이닝',
+  '카페·빵·디저트':'☕ 카페·디저트', '술집':'🍶 술집', '라멘':'🍜 라멘', '미슐랭':'⭐ 미슐랭', '오마카세':'🍣 오마카세' };
+/* ── 정보 나이 관리 ──────────────────────────
+   모든 항목에는 확인일(verifiedAt, v)이 붙는다. 1년(365일)을 넘긴 항목은
+   목록에서 자동으로 빠지고, 콘솔에 경고를 남긴다. */
+const MAX_AGE_DAYS = 365;
+function daysSince(v) {
+  if (!v) return 0;
+  const t = Date.parse(v);
+  if (isNaN(t)) return 0;
+  return Math.floor((Date.now() - t) / 86400000);
+}
+const norm = p => {
+  const rawLs = p.ls || [];
+  const q = {
+    n: p.n || '', c: p.c || '', a: p.a || '', r: p.r || '', d: p.d || '', m: p.m || '',
+    s: p.s || '', sid: p.sid || '', why: p.why || '', price: p.p || p.price || '', pl: p.pl || '', hours: p.hours || '',
+    rating: p.rating || '',
+    fine: !!p.fine, oma: !!p.oma, mi: p.mi || '',
+    lat: +p.lat || 0, lon: +p.lon || 0, rt: !!p.rt, osm: p.osm || '',
+    v: p.v || '', nw: p.nw || '', fo: !!p.fo,
+    t: p.t || [], lsRaw: rawLs, ls: rawLs.filter(l => LIST_LABEL[l]).map(l => LIST_LABEL[l])
+  };
+  q.days = daysSince(q.v);
+  q.stale = q.v ? q.days > MAX_AGE_DAYS : false;
+  q.area = areaOf(q);
+  q.hay = [q.n, q.c, q.a, q.r, q.d, q.m, q.why, q.price, q.pl, q.hours, q.rating, q.mi, q.t.join(' '), q.lsRaw.join(' '), q.ls.join(' ')]
+    .join(' ').toLowerCase();
+  q.cho = chosungOf(q.hay);
+  return q;
+};
+
+// 발굴 목록도 같은 하나의 맛집 목록으로 합친다(별도 '신규' 구분 없음).
+const newAsPlaces = NEW_PLACES.map(p => norm({
+  n: p.n, c: p.c, a: p.a, r: p.reg || '', d: '', m: '', s: '', t: p.t || [],
+  why: p.w, price: p.p, pl: p.pl || '', hours: p.h, rating: p.r, mi: p.mi || '', oma: !!p.oma, fine: !!p.fine,
+  lat: p.lat || 0, lon: p.lon || 0, v: p.v || '', nw: p.nw || ''
+}));
+const ALL_RAW = newAsPlaces.concat(PLACES.map(p => norm(p)));
+const ALL = ALL_RAW.filter(p => !p.stale);
+if (ALL.length !== ALL_RAW.length) {
+  console.warn('[김당근 미식] 확인일이 1년을 넘은 ' + (ALL_RAW.length - ALL.length) + '곳을 목록에서 제외했습니다.');
+}
+
+/* ── 구·시 드롭다운: 전체 → 서울 구(가나다순) → 전국 시·도/시·군(가나다순) ── */
+const districtSet = new Set();
+ALL.forEach(p => { if (p.r) districtSet.add(p.r); });
+const distSel = document.getElementById('fDistrict');
+const isSeoulReg = r => r.indexOf('서울특별시') === 0;
+const seoulName = r => r.replace(/^서울특별시\s*/, '');
+const cntByReg = {};
+ALL.forEach(p => { if (p.r) cntByReg[p.r] = (cntByReg[p.r] || 0) + 1; });
+const regList = Array.from(districtSet);
+const seoulRegs = regList.filter(isSeoulReg).sort((a, b) => seoulName(a).localeCompare(seoulName(b), 'ko'));
+const otherRegs = regList.filter(r => !isSeoulReg(r)).sort((a, b) => a.localeCompare(b, 'ko'));
+[['서울', seoulRegs, seoulName], ['전국', otherRegs, r => r]].forEach(([label, list, fmt]) => {
+  if (!list.length) return;
+  const g = document.createElement('optgroup');
+  g.label = label;
+  list.forEach(v => {
+    const o = document.createElement('option');
+    o.value = v;
+    o.textContent = fmt(v) + ' (' + cntByReg[v] + ')';
+    g.appendChild(o);
+  });
+  distSel.appendChild(g);
+});
+
+/* ── 상태 ────────────────────────────────────── */
+const state = { q: '', area: '전체', district: '', cats: [], onlyVisited: false, sort: 'default', shown: 60 };
+
+/* URL 파라미터 복원 (?q=공덕&area=마포·공덕) */
+try {
+  const sp = new URLSearchParams(location.search);
+  if (sp.get('q')) state.q = sp.get('q');
+  if (sp.get('area') && AREAS.indexOf(sp.get('area')) > -1) state.area = sp.get('area');
+  if (sp.get('district') && districtSet.has(sp.get('district'))) state.district = sp.get('district');
+  if (sp.get('cat')) state.cats = sp.get('cat').split(',').filter(id => CATBY[id]);
+} catch (e) {}
+
+function matches(p) {
+  if (state.area === '서울 전체') { if ((p.r || '').indexOf('서울특별시') !== 0) return false; }
+  else if (state.area !== '전체' && p.area !== state.area) return false;
+  if (state.district && p.r !== state.district) return false;
+  if (state.cats.length) {
+    let ok = false;
+    for (let i = 0; i < state.cats.length; i++) { if (CATBY[state.cats[i]].test(p)) { ok = true; break; } }
+    if (!ok) return false;
+  }
+  if (state.onlyVisited && !(store[pid(p)] && store[pid(p)].visited)) return false;
+  if (state.q) {
+    if (isChosung(state.q)) {
+      if (p.cho.indexOf(state.q) === -1) return false;
+    } else {
+      const parts = state.q.toLowerCase().split(' ').filter(Boolean);
+      for (let i = 0; i < parts.length; i++) { if (p.hay.indexOf(parts[i]) === -1) return false; }
+    }
+  }
+  return true;
+}
+
+function sorted(arr) {
+  const a = arr.slice();
+  const rOf = s => parseFloat(s.rating) || 0;
+  const MI = { '3스타': 5, '2스타': 4, '1스타': 3, '빕 구르망': 2, '셀렉티드': 1 };
+  if (state.sort === 'name') a.sort((x, y) => x.n.localeCompare(y.n, 'ko'));
+  else if (state.sort === 'area') a.sort((x, y) => x.area.localeCompare(y.area, 'ko') || x.n.localeCompare(y.n, 'ko'));
+  else if (state.sort === 'mymark') a.sort((x, y) => {
+    const r = s => (store[pid(s)] && store[pid(s)].rating) || 0;
+    return r(y) - r(x) || x.n.localeCompare(y.n, 'ko');
+  });
+  // 기본(추천순): 미쉐린 등급 → 평점 → 가나다
+  else a.sort((x, y) => (MI[y.mi] || 0) - (MI[x.mi] || 0) || rOf(y) - rOf(x) || x.n.localeCompare(y.n, 'ko'));
+  return a;
+}
+
+/* ── 렌더 유틸 ───────────────────────────────── */
+const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined) e.textContent = txt; return e; };
+const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const escHtml = s => String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+
+function hl(text, q) {
+  if (!text) return '';
+  if (!q) return escHtml(text);
+  if (isChosung(q)) {
+    return String(text).split(/(\s+)/).map(tok => {
+      if (!tok || /^\s+$/.test(tok)) return escHtml(tok);
+      return chosungOf(tok.toLowerCase()).indexOf(q) > -1 ? '<mark>' + escHtml(tok) + '</mark>' : escHtml(tok);
+    }).join('');
+  }
+  const parts = q.toLowerCase().split(' ').filter(Boolean).map(escRe);
+  if (!parts.length) return escHtml(text);
+  const re = new RegExp('(' + parts.join('|') + ')', 'gi');
+  let out = '', last = 0, m;
+  while ((m = re.exec(text)) !== null) {
+    if (!m[0]) { re.lastIndex++; continue; }
+    out += escHtml(text.slice(last, m.index)) + '<mark>' + escHtml(m[0]) + '</mark>';
+    last = m.index + m[0].length;
+  }
+  return out + escHtml(text.slice(last));
+}
+
+/* 지도 링크 — 네이버지도는 '상호명 + 구/시'로만 검색한다.
+   주소·층·출구거리·괄호를 붙이면 네이버지도가 업체를 못 찾아 "조건에 맞는 업체가 없습니다"가 뜨므로 금지. */
+function shortGu(p) {
+  const t = (p.r || '').split(/\s+/).filter(Boolean);
+  return t[1] || '';
+}
+function naverQuery(p) {
+  const n = (p.n || '').trim();
+  if (!n) return (p.a || '').trim();
+  const g = shortGu(p);
+  return (g && n.indexOf(g) === -1) ? n + ' ' + g : n;
+}
+function naverLink(p) {
+  if (p.s && /^\d+$/.test(p.s)) return 'https://map.naver.com/p/entry/place/' + p.s;
+  return 'https://map.naver.com/p/search/' + encodeURIComponent(naverQuery(p));
+}
+function googleLink(p) {
+  const q = p.a ? [p.n, p.a].filter(Boolean).join(' ')
+                : (p.lat && p.lon ? p.lat + ',' + p.lon : p.n);
+  return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q);
+}
+
+/* ============================================================
+   취향 학습 + 무한 발굴 엔진
+   - 가봄·별점·댓글·지도 클릭·필터 선택을 취향 점수로 쌓는다
+   - 발굴은 '아직 안 본 곳'만 5곳씩. 📡 실시간 발굴을 켜면
+     OpenStreetMap(Overpass)에서 동네 실제 식당을 실시간으로 더 캐온다
+   ============================================================ */
+const TKEY = 'kimdanggeun.food.taste.v1';
+const SKEY = 'kimdanggeun.food.seen.v1';
+const GKEY = 'kimdanggeun.food.geo.v1';
+let taste = { a:{}, r:{}, c:{}, t:{} };
+let seen = {};
+let geoCache = {};
+try { taste = Object.assign(taste, JSON.parse(localStorage.getItem(TKEY) || '{}') || {}); } catch (e) {}
+try { seen = JSON.parse(localStorage.getItem(SKEY) || '{}') || {}; } catch (e) {}
+try { geoCache = JSON.parse(localStorage.getItem(GKEY) || '{}') || {}; } catch (e) {}
+const saveTaste = () => { try { localStorage.setItem(TKEY, JSON.stringify(taste)); } catch (e) {} };
+const saveSeen = () => { try { localStorage.setItem(SKEY, JSON.stringify(seen)); } catch (e) {} };
+const saveGeo = () => { try { localStorage.setItem(GKEY, JSON.stringify(geoCache)); } catch (e) {} };
+
+function bump(kind, key, w) {
+  if (!key || !w) return;
+  const s = taste[kind] || (taste[kind] = {});
+  s[key] = Math.max(0, Math.min(40, (s[key] || 0) + w));
+  saveTaste();
+}
+function learnPlace(p, w) {
+  if (!p) return;
+  bump('a', p.area, w * 1.2);
+  bump('r', p.r, w);
+  (p.t || []).forEach(t => bump('t', t, w * 0.7));
+  CATS.forEach(cat => { if (cat.test(p)) bump('c', cat.id, w * 0.6); });
+}
+function tasteScore(p) {
+  let s = (taste.a[p.area] || 0) * 2 + (taste.r[p.r] || 0) * 1.8;
+  (p.t || []).forEach(t => { s += (taste.t[t] || 0); });
+  CATS.forEach(cat => { const v = taste.c[cat.id] || 0; if (v && cat.test(p)) s += v * 0.8; });
+  return s;
+}
+const normName = s => (s || '').replace(/[\s()\[\]{}·.,'"`~!?\-_/&+]/g, '').toLowerCase();
+
+const DIG = { list: [], ids: new Set(), names: new Set(), rt: false, busy: false, api: '', relax: '' };
+const DBNAMES = new Set();
+ALL.forEach(p => DBNAMES.add(normName(p.n)));
+
+/* ── 후보 풀 & 가중 추출 ─────────────────── */
+// 권역별 등록 수 — 지방처럼 등록이 적은 권역이 발굴에서 더 자주 나오게 가중치를 준다.
+const AREA_COUNT = {};
+ALL.forEach(p => { AREA_COUNT[p.area] = (AREA_COUNT[p.area] || 0) + 1; });
+function areaBoost(p) {
+  const c = AREA_COUNT[p.area] || 0;
+  return 1 + 6 / (c + 6);
+}
+function areaRoot(a) {
+  if (a === '서울 전체' || a === '서울 그 외' || SEOUL_CLUSTERS.some(c => c[0] === a)) return '서울';
+  if (NAT_AREAS.indexOf(a) > -1) return a;
+  return '';
+}
+/* 단계별 후보 풀
+   0=지금 고른 조건 그대로  1=같은 권역까지 넓힘  2=전국  3=이미 본 곳 재활용 */
+function digPool(stage) {
+  const out = [];
+  const wantCats = state.cats;
+  const root = areaRoot(state.area);
+  for (let i = 0; i < ALL.length; i++) {
+    const p = ALL[i], id = pid(p);
+    if (DIG.ids.has(id)) continue;
+    if (stage < 3 && seen[id]) continue;
+    if (stage === 0) {
+      if (!matches(p)) continue;
+    } else if (stage === 1) {
+      if (state.q) continue;
+      if (wantCats.length) {
+        let ok = false;
+        for (let k = 0; k < wantCats.length; k++) { if (CATBY[wantCats[k]].test(p)) { ok = true; break; } }
+        if (!ok) continue;
+      }
+      if (root && areaRoot(p.area) !== root) continue;
+    }
+    out.push(p);
+  }
+  return out;
+}
+function weightedSample(pool, n, weightOf) {
+  const arr = pool.slice(), out = [];
+  while (arr.length && out.length < n) {
+    const w = arr.map(p => Math.max(0.0001, weightOf(p)));
+    const total = w.reduce((a, b) => a + b, 0);
+    let r = Math.random() * total, k = 0;
+    for (; k < arr.length; k++) { r -= w[k]; if (r <= 0) break; }
+    if (k >= arr.length) k = arr.length - 1;
+    out.push(arr.splice(k, 1)[0]);
+  }
+  return out;
+}
+function distanceKm(aLat, aLon, bLat, bLon) {
+  const R = 6371, dLat = (bLat - aLat) * Math.PI / 180, dLon = (bLon - aLon) * Math.PI / 180;
+  const s = Math.sin(dLat / 2) ** 2 + Math.cos(aLat * Math.PI / 180) * Math.cos(bLat * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(s));
+}
+
+/* ── 실시간(OSM) 발굴 ────────────────────
+   OSM에서 '지금 영업 중인' 음식점을 가져오고, 노드의 마지막 갱신일(timestamp)로
+   최근 1년 안에 등록·수정된 곳(=새로 생겼거나 정보가 갱신된 곳)을 우선 발굴한다. */
+const OVERPASS = [
+  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+  'https://overpass-api.de/api/interpreter'
+];
+const OSM_AMENITIES = 'restaurant|cafe|bar|pub|fast_food|food_court|ice_cream|biergarten';
+// 분류를 고르면 그 음식(cuisine) 태그로 한 번 더 훑는다 — 중식·분식은 일반 음식점 검색에 잘 안 걸린다.
+const OSM_CUISINE = { chinese: 'chinese|asian|noodle|dumpling', bunsik: 'fried_food|noodle|dumpling|burger', japan: 'japanese|ramen|sushi' };
+const OSM_FRESH_DAYS = 365;
+function osmFresh(ts) {
+  if (!ts) return false;
+  const t = Date.parse(ts);
+  return !isNaN(t) && (Date.now() - t) <= OSM_FRESH_DAYS * 86400000;
+}
+const AREA_HINT = {
+  '강원': '강원특별자치도 춘천시', '경기·인천': '경기도 수원시',
+  '경상·부산·대구·울산': '부산광역시', '전라·광주': '광주광역시',
+  '제주': '제주특별자치도 제주시', '충청·대전·세종': '대전광역시',
+  '서울 그 외': '서울특별시', '마포·공덕': '서울특별시 마포구', '홍대·연남': '서울특별시 마포구'
+};
+const CUISINE_KO = {
+  korean:'한식', japanese:'일식', chinese:'중식', asian:'아시아음식', thai:'태국음식', vietnamese:'베트남음식',
+  indian:'인도음식', italian:'이탈리아음식', french:'프랑스음식', spanish:'스페인음식', pizza:'피자', burger:'버거',
+  chicken:'치킨', bbq:'고기구이', barbecue:'고기구이', sushi:'초밥', ramen:'라멘', noodle:'국수',
+  desert:'디저트', dessert:'디저트', bakery:'베이커리', seafood:'해물,생선', soup:'국밥',
+  'fried_food':'튀김', 'fast_food':'패스트푸드', 'ice_cream':'아이스크림', regional:'향토음식',
+  bibimbap:'비빔밥', 'hot_pot':'샤브샤브', 'bubble_tea':'버블티', dumpling:'만두', steak:'스테이크'
+};
+
+async function geocode(text) {
+  const key = normName(text);
+  if (!key) return null;
+  if (geoCache[key]) return geoCache[key];
+  try {
+    const r = await fetch('https://photon.komoot.io/api/?q=' + encodeURIComponent(text) + '&limit=1', { cache: 'no-store' });
+    if (!r.ok) return null;
+    const j = await r.json();
+    const f = (j.features || [])[0];
+    if (!f || !f.geometry) return null;
+    const out = {
+      lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0],
+      label: f.properties.name || text, city: f.properties.city || '', district: f.properties.district || ''
+    };
+    geoCache[key] = out; saveGeo();
+    return out;
+  } catch (e) { return null; }
+}
+async function centerForState() {
+  if (state.district) return await geocode(state.district);
+  if (state.area !== '전체') {
+    const cl = SEOUL_CLUSTERS.filter(c => c[0] === state.area)[0];
+    return await geocode(AREA_HINT[state.area] || (cl && cl[1] ? cl[1][0] : state.area));
+  }
+  return await geocode('서울특별시 마포구');
+}
+function osmToPlace(el, snap) {
+  const t = el.tags || {};
+  const name = (t.name || '').trim();
+  if (!name) return null;
+  const lat = el.lat != null ? el.lat : (el.center ? el.center.lat : 0);
+  const lon = el.lon != null ? el.lon : (el.center ? el.center.lon : 0);
+  if (!lat || !lon) return null;
+  const amen = t.amenity || '';
+  const cuis = (t.cuisine || '').split(';').map(x => CUISINE_KO[x.trim()] || '').filter(Boolean).join('·');
+  const kind = amen === 'cafe' ? '카페' : (amen === 'bar' || amen === 'pub') ? '술집' : amen === 'fast_food' ? '패스트푸드' : '음식점';
+  const city = t['addr:city'] || snap.city || '';
+  const dist = t['addr:district'] || snap.district || state.district || '';
+  const sub = t['addr:subdistrict'] || '';
+  const street = t['addr:street'] || '';
+  const hno = t['addr:housenumber'] || '';
+  const addr = [city, dist, street, hno].filter(Boolean).join(' ');
+  const m = Math.round(distanceKm(lat, lon, snap.lat, snap.lon) * 1000);
+  const fo = osmFresh(el.timestamp);
+  return norm({
+    n: name, c: [cuis, kind].filter(Boolean).join(' · '),
+    a: street ? addr : (sub ? sub + ' (OSM 좌표)' : ''),
+    r: [city, dist].filter(Boolean).join(' '), d: sub,
+    why: '📡 OSM 실시간 발굴' + (sub ? ' · ' + sub : '') + (m ? ' · ' + (m >= 1000 ? (m / 1000).toFixed(1) + 'km' : m + 'm') : ''),
+    t: fo ? ['실시간', '최근등록'] : ['실시간'], rt: true, osm: (el.type === 'node' ? 'n' : el.type === 'way' ? 'w' : 'r') + el.id,
+    lat: lat, lon: lon, fo: fo, v: new Date().toISOString().slice(0, 10)
+  });
+}
+async function fetchOverpass(center, radius, cuisine) {
+  const cui = cuisine ? '["cuisine"~"^(' + cuisine + ')$",i]' : '';
+  const data = '[out:json][timeout:18];nwr["amenity"~"^(' + OSM_AMENITIES + ')$"]["name"]' + cui + '(around:' +
+    radius + ',' + center.lat + ',' + center.lon + ');out center meta 200;';
+  const one = async url => {
+    const ctl = new AbortController();
+    const to = setTimeout(() => ctl.abort(), 16000);
+    try {
+      const r = await fetch(url, {
+        method: 'POST', body: 'data=' + encodeURIComponent(data),
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, signal: ctl.signal, cache: 'no-store'
+      });
+      clearTimeout(to);
+      if (!r.ok) return [];
+      const j = await r.json();
+      return (j && j.elements) || [];
+    } catch (e) { clearTimeout(to); return []; }
+  };
+  const res = await Promise.all(OVERPASS.map(one));
+  let best = [];
+  res.forEach(list => { if (list.length > best.length) best = list; });
+  return best;
+}
+/* Overpass가 밀릴 때의 2차 경로: OSM Nominatim (한글 주소·좌표 반환) */
+async function fetchNominatim(center) {
+  const vb = [center.lon - 0.035, center.lat + 0.03, center.lon + 0.035, center.lat - 0.03].join(',');
+  const out = [];
+  const kinds = ['restaurant', 'cafe', 'fast_food', 'bar', 'pub', 'ice_cream'];
+  for (let i = 0; i < kinds.length; i++) {
+    const url = 'https://nominatim.openstreetmap.org/search?amenity=' + kinds[i] +
+      '&viewbox=' + vb + '&bounded=1&format=jsonv2&limit=25&accept-language=ko';
+    try {
+      const r = await fetch(url, { cache: 'no-store' });
+      if (!r.ok) continue;
+      const j = await r.json();
+      if (Array.isArray(j)) j.forEach(row => out.push({ nomi: row, amen: kinds[i] }));
+    } catch (e) {}
+    await new Promise(res => setTimeout(res, 1100)); // Nominatim 이용예절: 초당 1요청
+  }
+  return out;
+}
+function nomiToPlace(row, snap) {
+  const r = row.nomi || {};
+  const name = (r.name || '').trim();
+  if (!name) return null;
+  const lat = +r.lat, lon = +r.lon;
+  if (!lat || !lon) return null;
+  const parts = String(r.display_name || '').split(',').map(s => s.trim()).filter(Boolean);
+  const rest = parts.filter(p => p !== name && !/^\d{5}$/.test(p) && !/대한민국|South Korea/.test(p));
+  const gu = rest.filter(p => /(구|시|군)$/.test(p)).slice(-1)[0] || '';
+  const city = rest.filter(p => /(특별시|광역시|특별자치시|특별자치도|도)$/.test(p)).slice(-1)[0] || '';
+  const streetish = rest.filter(p => /(로|길)\s*\d*$/.test(p) || /\d/.test(p)).length > 0;
+  const m = Math.round(distanceKm(lat, lon, snap.lat, snap.lon) * 1000);
+  const kind = r.type === 'cafe' ? '카페' : (r.type === 'bar' || r.type === 'pub') ? '술집' : r.type === 'fast_food' ? '패스트푸드' : '음식점';
+  return norm({
+    n: name, c: kind, a: streetish ? rest.join(' ') : '', r: [city, gu].filter(Boolean).join(' ') || state.district || '',
+    why: '📡 OSM 실시간 발굴' + (m ? ' · ' + (m >= 1000 ? (m / 1000).toFixed(1) + 'km' : m + 'm') : ''),
+    t: ['실시간'], rt: true, osm: (r.osm_type === 'node' ? 'n' : r.osm_type === 'way' ? 'w' : 'r') + r.osm_id,
+    v: new Date().toISOString().slice(0, 10),
+    lat: lat, lon: lon
+  });
+}
+
+/* ── 발굴 결과 렌더 ──────────────────────── */
+function renderDig(scroll) {
+  const wrap = document.getElementById('digWrap');
+  const grid = document.getElementById('digGrid');
+  if (!DIG.list.length) { wrap.hidden = true; return; }
+  wrap.hidden = false;
+  grid.innerHTML = '';
+  const frag = document.createDocumentFragment();
+  DIG.list.forEach(p => frag.appendChild(card(p)));
+  grid.appendChild(frag);
+  document.getElementById('digStat').textContent =
+    '이번 발굴 ' + DIG.list.length + '곳 · 지금까지 본 곳 ' + Object.keys(seen).length.toLocaleString() + '곳';
+  document.getElementById('digApi').textContent =
+    (DIG.api || (DIG.rt ? '📡 실시간 발굴 켜짐' : '📡 실시간 발굴 꺼짐')) + (DIG.relax ? ' · ' + DIG.relax : '');
+  renderDigSources();
+  if (scroll) setTimeout(() => wrap.scrollIntoView({ behavior: 'smooth', block: 'start' }), 30);
+}
+/* 지금 고른 지역·분류를 다이닝코드/캐치테이블/네이버지도에서 바로 열어 보는 링크 */
+function renderDigSources() {
+  const box = document.getElementById('digSrc');
+  if (!box) return;
+  const kw = state.cats.map(id => (CATBY[id] ? CATBY[id].label.replace(/^\S+\s*/, '') : '')).filter(Boolean).join(' ') || '맛집';
+  const area = state.district ? state.district : (state.area === '전체' ? '서울' : state.area);
+  const rows = [
+    ['📊 다이닝코드 랭킹', 'https://www.diningcode.com/rank/' + encodeURIComponent(area.replace(/\s+/g, ' ') + '-' + kw)],
+    ['🍽️ 캐치테이블 검색', 'https://www.google.com/search?q=' + encodeURIComponent('site:catchtable.co.kr ' + area + ' ' + kw)],
+    ['🗺️ 네이버지도', 'https://map.naver.com/p/search/' + encodeURIComponent(area + ' ' + kw)]
+  ];
+  box.innerHTML = '';
+  rows.forEach(r => {
+    const a = el('a', '', r[0]);
+    a.href = r[1]; a.target = '_blank'; a.rel = 'noopener';
+    box.appendChild(a);
+  });
+}
+function addDig(places, scroll) {
+  let added = 0;
+  places.forEach(p => {
+    const id = pid(p), nn = normName(p.n);
+    if (DIG.ids.has(id) || DIG.names.has(nn) || !nn) return;
+    DIG.ids.add(id); DIG.names.add(nn); DIG.list.push(p); seen[id] = Date.now(); added++;
+  });
+  if (!added) return 0;
+  saveSeen();
+  renderDig(scroll);
+  return added;
+}
+
+async function digMore(n) {
+  if (DIG.busy) return;
+  DIG.busy = true;
+  const btn = document.getElementById('digBtn');
+  const label = btn.textContent;
+  btn.disabled = true; btn.textContent = '⏳ 발굴 중...';
+  try {
+    const first = !DIG.list.length;
+    // 조건 그대로 → 같은 권역 → 전국 → 이미 본 곳 순으로 넓혀서 '바닥'이 없다.
+    let picked = [], stageUsed = 0;
+    for (let st = 0; st <= 3 && picked.length < n; st++) {
+      const pool = digPool(st).filter(p => picked.indexOf(p) === -1);
+      const take = weightedSample(pool, n - picked.length, p => (1 + tasteScore(p) * 3) * areaBoost(p));
+      if (take.length) { picked = picked.concat(take); stageUsed = st; }
+    }
+    if (stageUsed === 1) DIG.relax = '🔎 이 지역 후보가 바닥나 같은 권역까지 넓혀 발굴했어요';
+    else if (stageUsed === 2) DIG.relax = '🔎 반경을 전국으로 넓혀 발굴했어요';
+    else if (stageUsed === 3) DIG.relax = '🔎 새 곳을 다 봐서, 본 곳 중에서 다시 골랐어요';
+    else DIG.relax = '';
+    addDig(picked, first);
+    if (DIG.rt) liveDig();
+  } finally {
+    DIG.busy = false; btn.disabled = false; btn.textContent = label;
+  }
+}
+
+async function liveDig() {
+  const apiEl = document.getElementById('digApi');
+  try {
+    // OSM에는 미쉐린·코스다이닝 같은 분류 정보가 없어, 파인다이닝 필터와 섞으면 오분류처럼 보인다.
+    if (state.cats.indexOf('fine') > -1) {
+      DIG.api = '📡 파인다이닝은 OSM에 분류 정보가 없어 실시간 발굴을 건너뜁니다 (DB 발굴만)';
+      renderDig(); return;
+    }
+    const center = await centerForState();
+    if (!center) { DIG.api = '📡 위치 확인 실패 → DB 미노출 풀에서 채움'; renderDig(); return; }
+    const radius = state.district && /(시|군)$/.test(state.district) ? 2800 : 2000;
+    DIG.api = '📡 ' + (center.label || '내 지역') + ' 주변 실시간 발굴 중…'; if (apiEl) apiEl.textContent = DIG.api;
+    let places = [];
+    let els = await fetchOverpass(center, radius);
+    const wantCui = state.cats.map(id => OSM_CUISINE[id] || '').filter(Boolean);
+    if (wantCui.length) {
+      const extra = await fetchOverpass(center, radius, wantCui.join('|'));
+      const haveE = new Set(els.map(e => (e.type || '') + e.id));
+      let extraN = 0;
+      extra.forEach(e => { const k = (e.type || '') + e.id; if (!haveE.has(k)) { els.push(e); haveE.add(k); extraN++; } });
+      if (extraN) DIG.api = '📡 OSM 분류검색 +' + extraN + '곳';
+    }
+    if (els.length) {
+      places = els.map(el => osmToPlace(el, center)).filter(Boolean);
+      DIG.api = '📡 OSM에서 ' + places.length + '곳 확인';
+    } else {
+      const rows = await fetchNominatim(center);
+      places = rows.map(row => nomiToPlace(row, center)).filter(Boolean);
+      DIG.api = places.length ? '📡 OSM(Nominatim)에서 ' + places.length + '곳 확인'
+                              : '📡 실시간 API 응답 없음 → DB 풀에서 채움';
+    }
+    const fresh = places.filter(p => {
+      const id = pid(p), nn = normName(p.n);
+      if (!nn || DIG.ids.has(id) || DIG.names.has(nn) || DBNAMES.has(nn) || seen[id]) return false;
+      return true;
+    });
+    const take = weightedSample(fresh, 3, p => {
+      const kor = /[가-힣]/.test(p.n) ? 2 : 0;
+      const neo = p.nw ? 2 : 0;
+      const fo = p.fo ? 2 : 0;              // 최근 1년 내 OSM에 등록·수정된 곳 우선
+      return 1 + kor + neo + fo + (p.a ? 1.5 : 0) + tasteScore(p);
+    });
+    const added = addDig(take);
+    if (added) DIG.api += ' → 새로 ' + added + '곳 발굴';    else DIG.api += ' → 이미 아는 곳뿐, DB 풀에서 채웠어요';
+    renderDig();
+  } catch (e) {
+    DIG.api = '📡 실시간 발굴 실패 → DB 풀에서 채움';
+    renderDig();
+  }
+}
+
+/* ── 댓글 ────────────────────────────────────── */
+function relTime(ts) {
+  if (!ts) return '';
+  const d = Date.now() - ts;
+  if (d < 60000) return '방금';
+  if (d < 3600000) return Math.floor(d / 60000) + '분 전';
+  if (d < 86400000) return Math.floor(d / 3600000) + '시간 전';
+  if (d < 604800000) return Math.floor(d / 86400000) + '일 전';
+  const t = new Date(ts);
+  return (t.getMonth() + 1) + '.' + t.getDate();
+}
+function commentsOf(rec) {
+  if (rec.comments && rec.comments.length) return rec.comments;
+  if (rec.memo) return [{ k: '나', t: rec.memo, d: 0 }];
+  return [];
+}
+
+/* ── 카드 ────────────────────────────────────── */
+function card(p) {
+  const id = pid(p);
+  const rec = store[id] || {};
+  const q = state.q;
+  const c = el('div', 'card' + (p.rt ? ' isrt' : '') + (rec.visited ? ' visited' : ''));
+
+  const top = el('div', 'top');
+  const left = el('div');
+  const h = el('h2', 'name');
+  h.innerHTML = hl(p.n, q);
+  left.appendChild(h);
+  const badges = el('div', 'badges');
+  if (p.mi) badges.appendChild(el('span', 'b mi', '⭐ ' + (p.mi === '빕 구르망' ? '빕 구르망' : '미슐랭 ' + (p.mi === '셀렉티드' ? '셀렉티드' : p.mi))));
+  if (p.oma) badges.appendChild(el('span', 'b oma', '🍣 오마카세'));
+  if (p.nw) badges.appendChild(el('span', 'b new', '🆕 ' + p.nw + ' 오픈'));
+  else if (p.fo) badges.appendChild(el('span', 'b new', '🆕 최근 등록'));
+  if (p.rt) badges.appendChild(el('span', 'b rt', '📡 실시간'));
+  p.ls.slice(0, 2).forEach(l => badges.appendChild(el('span', 'b list', l)));
+  p.t.slice(0, 3).forEach(t => { const b = el('span', 'b tag'); b.innerHTML = '#' + hl(t, q); badges.appendChild(b); });
+  left.appendChild(badges);
+  top.appendChild(left);
+  c.appendChild(top);
+
+  if (p.c) { const d = el('div', 'cat'); d.innerHTML = hl(p.c, q); c.appendChild(d); }
+  if (p.a) { const d = el('div', 'addr'); d.innerHTML = '📍 ' + hl(p.a, q); c.appendChild(d); }
+  if (p.hours) c.appendChild(el('div', 'addr', '🕒 ' + p.hours));
+  if (p.rating) c.appendChild(el('div', 'addr', '⭐ 평점 ' + p.rating));
+  if (p.price) { const d = el('div', 'menu'); d.innerHTML = '🍽️ ' + hl(p.price, q); c.appendChild(d); }
+  if (p.pl) { const d = el('div', 'price'); d.innerHTML = '💰 ' + hl(p.pl, q); c.appendChild(d); }
+  if (p.m) { const d = el('div', 'memo'); d.innerHTML = '📝 ' + hl(p.m, q); c.appendChild(d); }
+  if (p.why) { const d = el('div', 'why'); d.innerHTML = '✅ ' + hl(p.why, q); c.appendChild(d); }
+  if (p.v) c.appendChild(el('div', 'verif', '정보 확인 ' + p.v));
+
+  const row = el('div', 'row');
+  const a1 = el('a', 'btn naver', '🗺️ 네이버지도');
+  a1.href = naverLink(p); a1.target = '_blank'; a1.rel = 'noopener';
+  a1.onclick = () => learnPlace(p, 0.6);
+  const a2 = el('a', 'btn google', '🌍 구글지도');
+  a2.href = googleLink(p); a2.target = '_blank'; a2.rel = 'noopener';
+  a2.onclick = () => learnPlace(p, 0.5);
+  row.appendChild(a1); row.appendChild(a2);
+  const vBtn = el('button', 'btn', rec.visited ? '✅ 가봄' : '☑️ 가봄 표시');
+  vBtn.onclick = () => {
+    const s = store[id] || (store[id] = {});
+    s.visited = !s.visited; save();
+    learnPlace(p, s.visited ? 3 : -1);
+    render();
+  };
+  row.appendChild(vBtn);
+  c.appendChild(row);
+
+  const stars = el('div', 'stars');
+  stars.setAttribute('title', '내 별점');
+  for (let i = 1; i <= 5; i++) {
+    const sp = el('span', (rec.rating || 0) >= i ? 'on' : '', '★');
+    sp.onclick = () => {
+      const s = store[id] || (store[id] = {});
+      s.rating = (s.rating === i) ? 0 : i;
+      s.visited = true; save();
+      learnPlace(p, s.rating ? i * 0.8 : -1);
+      render();
+    };
+    stars.appendChild(sp);
+  }
+  c.appendChild(stars);
+
+  /* 💬 한줄 댓글 */
+  const box = el('div', 'cbox');
+  const list = el('div', 'clist');
+  const drawList = () => {
+    const items = commentsOf(store[id] || rec);
+    list.innerHTML = '';
+    items.forEach((cm, idx) => {
+      const line = el('div', 'cmt');
+      line.appendChild(el('span', 'who', cm.k || '익명'));
+      line.appendChild(el('span', 'txt', cm.t));
+      line.appendChild(el('span', 'when', relTime(cm.d)));
+      const del = el('button', 'del', '✕');
+      del.setAttribute('aria-label', '댓글 삭제');
+      del.onclick = () => {
+        const s = store[id] || (store[id] = {});
+        const live = commentsOf(s);
+        live.splice(idx, 1);
+        s.comments = live; delete s.memo; save(); drawList();
+      };
+      line.appendChild(del);
+      list.appendChild(line);
+    });
+  };
+  drawList();
+  box.appendChild(list);
+
+  const form = el('form', 'cform');
+  const nick = el('input', 'ck');
+  nick.placeholder = '닉네임(선택)'; nick.maxLength = 12; nick.autocomplete = 'off';
+  nick.setAttribute('aria-label', '닉네임 (선택)');
+  const txt = el('input', 'ct');
+  txt.placeholder = '💬 한줄 댓글 남기기...'; txt.maxLength = 120; txt.autocomplete = 'off';
+  txt.setAttribute('aria-label', '한줄 댓글');
+  const send = el('button', '', '등록'); send.type = 'submit';
+  form.appendChild(nick); form.appendChild(txt); form.appendChild(send);
+  form.onsubmit = e => {
+    e.preventDefault();
+    const t = txt.value.trim();
+    if (!t) { txt.focus(); return; }
+    const s = store[id] || (store[id] = {});
+    const live = commentsOf(s);
+    live.unshift({ k: nick.value.trim() || '익명', t: t.slice(0, 120), d: Date.now() });
+    s.comments = live; delete s.memo; save();
+    learnPlace(p, 1.5);
+    txt.value = ''; nick.value = '';
+    drawList();
+    txt.blur();
+  };
+  box.appendChild(form);
+  c.appendChild(box);
+  return c;
+}
+
+/* ── 필터 칩 렌더 ────────────────────────────── */
+const areaChips = document.getElementById('areaChips');
+function areaChip(a) {
+  const b = el('button', 'chip', a);
+  b.setAttribute('aria-pressed', String(state.area === a));
+  b.dataset.area = a;
+  b.onclick = () => {
+    state.area = (state.area === a && a !== '전체') ? '전체' : a; state.shown = 60;
+    if (state.area !== '전체') bump('a', state.area, 1);
+    syncChips(); render();
+  };
+  areaChips.appendChild(b);
+}
+function areaSep(txt) { areaChips.appendChild(el('span', 'sep', txt)); }
+areaChip('전체');
+areaSep('서울');
+areaChip('서울 전체');
+SEOUL_CLUSTERS.forEach(c => areaChip(c[0]));
+areaSep('전국');
+NAT_AREAS.forEach(a => areaChip(a));
+
+const catChips = document.getElementById('catChips');
+CATS.forEach(cat => {
+  const b = el('button', 'chip', cat.label);
+  b.setAttribute('aria-pressed', 'false');
+  b.dataset.cat = cat.id;
+  b.onclick = () => {
+    const i = state.cats.indexOf(cat.id);
+    if (i > -1) state.cats.splice(i, 1); else { state.cats.push(cat.id); bump('c', cat.id, 1.2); }
+    state.shown = 60; syncChips(); render();
+  };
+  catChips.appendChild(b);
+});
+function syncChips() {
+  Array.prototype.forEach.call(areaChips.querySelectorAll('.chip'), b => b.setAttribute('aria-pressed', String(b.dataset.area === state.area)));
+  Array.prototype.forEach.call(catChips.children, b => b.setAttribute('aria-pressed', String(state.cats.indexOf(b.dataset.cat) > -1)));
+  document.getElementById('onlyVisited').setAttribute('aria-pressed', String(state.onlyVisited));
+  document.getElementById('qclear').classList.toggle('on', !!state.q);
+  document.getElementById('q').value = state.q;
+  document.getElementById('fDistrict').value = state.district;
+}
+
+/* ── 결과 렌더 ───────────────────────────────── */
+function currentList() { return sorted(ALL.filter(matches)); }
+
+function render() {
+  const grid = document.getElementById('grid');
+  const list = currentList();
+  const q = state.q;
+
+  const hitText = document.getElementById('hitText');
+  if (q || state.area !== '전체' || state.district || state.cats.length || state.onlyVisited) {
+    hitText.innerHTML = (q ? '“<span class="q">' + escHtml(q) + '</span>” 검색 · ' : '') + '조건에 맞는 <b id="hitNum">' +
+      list.length.toLocaleString() + '</b>곳 <span style="opacity:.7">/ 전체 ' + ALL.length.toLocaleString() + '곳</span>';
+  } else {
+    hitText.innerHTML = '전체 <b id="hitNum">' + list.length.toLocaleString() + '</b>곳';
+  }
+
+  document.getElementById('count').textContent = list.length.toLocaleString() + '곳' + (q ? ' · “' + q + '”' : '');
+  document.getElementById('empty').hidden = list.length > 0;
+  document.getElementById('emptyHint').textContent = q
+    ? '“' + q + '”에 맞는 곳이 없어요. 초성(ㄱㅁㅅ)이나 더 짧은 단어로 다시 찾아보세요.'
+    : '필터를 하나씩 풀어보세요.';
+  grid.innerHTML = '';
+
+  const slice = list.slice(0, state.shown);
+  const frag = document.createDocumentFragment();
+  slice.forEach(p => frag.appendChild(card(p)));
+  grid.appendChild(frag);
+
+  const more = document.getElementById('more');
+  more.hidden = list.length <= state.shown;
+  more.textContent = '더 보기 (' + Math.max(0, list.length - state.shown).toLocaleString() + '곳 남음)';
+  document.getElementById('sVisited').textContent = Object.keys(store).filter(k => store[k] && store[k].visited).length;
+  document.getElementById('sNew').textContent = ALL.filter(p => p.nw).length;
+  if (DIG.list.length) renderDig();
+
+  try {
+    const sp = new URLSearchParams();
+    if (q) sp.set('q', q);
+    if (state.area !== '전체') sp.set('area', state.area);
+    if (state.district) sp.set('district', state.district);
+    if (state.cats.length) sp.set('cat', state.cats.join(','));
+    const qs = sp.toString();
+    history.replaceState(null, '', qs ? '?' + qs : location.pathname);
+  } catch (e) {}
+}
+
+/* ── 이벤트 ─────────────────────────────────── */
+const qInput = document.getElementById('q');
+qInput.oninput = e => { state.q = e.target.value.trim(); state.shown = 60; document.getElementById('qclear').classList.toggle('on', !!state.q); render(); };
+qInput.onkeydown = e => { if (e.key === 'Escape') { state.q = ''; e.target.value = ''; state.shown = 60; syncChips(); render(); } };
+document.getElementById('qclear').onclick = () => { state.q = ''; qInput.value = ''; state.shown = 60; syncChips(); render(); qInput.focus(); };
+Array.prototype.forEach.call(document.querySelectorAll('.quick button'), b => {
+  b.onclick = () => { state.q = b.dataset.q; state.shown = 60; syncChips(); render(); document.querySelector('main').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+});
+document.getElementById('fDistrict').onchange = e => { state.district = e.target.value; state.shown = 60; render(); };
+document.getElementById('sort').onchange = e => { state.sort = e.target.value; render(); };
+document.getElementById('onlyVisited').onclick = () => { state.onlyVisited = !state.onlyVisited; state.shown = 60; syncChips(); render(); };
+document.getElementById('more').onclick = () => { state.shown += 90; render(); };
+function resetAll() {
+  state.q = ''; state.area = '전체'; state.district = ''; state.cats = [];
+  state.onlyVisited = false; state.shown = 60;
+  distSel.value = ''; syncChips(); render();
+}
+document.getElementById('resetAll').onclick = resetAll;
+document.getElementById('resetAll2').onclick = resetAll;
+document.getElementById('exportBtn').onclick = () => {
+  const blob = new Blob([JSON.stringify(store, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'kimdanggeun-food-기록-' + new Date().toISOString().slice(0, 10) + '.json';
+  a.click(); URL.revokeObjectURL(a.href);
+};
+
+/* ── 랜덤 뽑기 ────────────────────────────────── */
+const overlay = document.getElementById('overlay');
+let pickPool = [];
+function weightedPick(pool) {
+  const w = pool.map(() => 1);
+  const total = w.reduce((a, b) => a + b, 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < pool.length; i++) { r -= w[i]; if (r <= 0) return pool[i]; }
+  return pool[pool.length - 1];
+}
+function openPicker() {
+  pickPool = currentList();
+  if (!pickPool.length) {
+    overlay.classList.add('on');
+    document.getElementById('pName').textContent = '후보가 없어요';
+    document.getElementById('pMeta').textContent = '검색어나 필터를 조금 풀어주세요.';
+    document.getElementById('pBody').innerHTML = '';
+    document.getElementById('pNaver').style.display = 'none';
+    document.getElementById('pGoogle').style.display = 'none';
+    return;
+  }
+  const p = weightedPick(pickPool);
+  document.getElementById('pName').textContent = p.n;
+  document.getElementById('pNaver').style.display = '';
+  document.getElementById('pGoogle').style.display = '';
+  document.getElementById('pMeta').textContent = [p.area, p.c].filter(Boolean).join(' · ') +
+    '  (후보 ' + pickPool.length.toLocaleString() + '곳)';
+  const body = document.getElementById('pBody');
+  body.innerHTML = '';
+  if (p.a) { const d = el('div', 'addr', '📍 ' + p.a); body.appendChild(d); }
+  if (p.hours) body.appendChild(el('div', 'addr', '🕒 ' + p.hours));
+  if (p.rating) body.appendChild(el('div', 'addr', '⭐ 평점 ' + p.rating));
+  if (p.price) body.appendChild(el('div', 'menu', '🍽️ ' + p.price));
+  if (p.pl) body.appendChild(el('div', 'price', '💰 ' + p.pl));
+  if (p.m) body.appendChild(el('div', 'memo', '📝 ' + p.m));
+  if (p.why) body.appendChild(el('div', 'why', '✅ ' + p.why));
+  if (p.nw) body.appendChild(el('div', 'why', '🆕 ' + p.nw + ' 오픈 · 최근 1년 신상'));
+  if (p.v) body.appendChild(el('div', 'verif', '정보 확인일 ' + p.v));
+  document.getElementById('pNaver').href = naverLink(p);
+  document.getElementById('pGoogle').href = googleLink(p);
+  overlay.classList.add('on');
+}
+document.getElementById('randBtn').onclick = openPicker;
+document.addEventListener('keydown', e => {
+  const t = e.target.tagName;
+  if (e.key === '/' && t !== 'INPUT' && t !== 'TEXTAREA') { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); qInput.focus(); }
+});
+document.getElementById('pReroll').onclick = openPicker;
+document.getElementById('pClose').onclick = () => overlay.classList.remove('on');
+overlay.onclick = e => { if (e.target === overlay) overlay.classList.remove('on'); };
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && overlay.classList.contains('on')) overlay.classList.remove('on'); });
+
+/* ── 무한 발굴 버튼 연결 ───────────────────── */
+const digBtnEl = document.getElementById('digBtn');
+const rtBtnEl = document.getElementById('rtBtn');
+digBtnEl.onclick = () => digMore(5);
+document.getElementById('digMore').onclick = () => digMore(5);
+document.getElementById('digReset').onclick = () => {
+  DIG.list = []; DIG.ids.clear(); DIG.names.clear(); DIG.api = '';
+  seen = {}; saveSeen();
+  document.getElementById('digWrap').hidden = true;
+  document.getElementById('digGrid').innerHTML = '';
+};
+rtBtnEl.onclick = () => {
+  DIG.rt = !DIG.rt;
+  rtBtnEl.setAttribute('aria-pressed', String(DIG.rt));
+  DIG.api = DIG.rt ? '📡 실시간 발굴 켜짐 — 발굴할 때 OSM에서 동네 식당을 더 캡니다' : '📡 실시간 발굴 꺼짐';
+  renderDig();
+  if (DIG.rt && !DIG.list.length) digMore(5);
+};
+
+/* ── 초기화 ─────────────────────────────────── */
+document.getElementById('sTotal').textContent = ALL.length.toLocaleString();
+document.getElementById('subTotal').textContent = ALL.length.toLocaleString();
+document.getElementById('sRegions').textContent = districtSet.size;
+document.getElementById('sNew').textContent = ALL.filter(p => p.nw).length;
+distSel.value = state.district;
+syncChips();
+render();
+</script>
+</body>
+</html>
