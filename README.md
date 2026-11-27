@@ -27,8 +27,22 @@ data/verify.json        (선택) 확인 오버라이드
 공통 필드: `n` 상호 · `c` 분류 · `a` 주소 · `r` 구/시 · `m` 메모 · `p` 대표메뉴+가격 · `pl` 가격대 ·
 `hours` 영업시간 · `rating` 평점 · `v` 확인일 · `nw` 신상 오픈 시기 · `src` 출처 · `fine`/`oma`/`mi` 태그
 
-## 매일 자동 갱신 (GitHub Actions)
-`.github/workflows/daily-update.yml` — **매일 06:00 KST**(`cron: '0 21 * * *'`)에 자동 실행, 수동 실행(`workflow_dispatch`)도 가능.
+## 매일 자동 갱신
+
+### 방법 1 — GitHub Actions (권장, 클라우드 러너)
+`.github/workflows/daily-update.yml` — **매일 06:00 KST**(`cron: '0 21 * * *'`), 수동 `workflow_dispatch` 지원.
+
+> ⚠️ 이 저장소는 Pickle 앱에 `workflows` 권한이 없어 앱이 이 파일을 올릴 수 없습니다(거부 메시지: `refusing to allow a GitHub App to create or update workflow … without workflows permission`).
+> 아래 한 번만 해 주면 됩니다.
+> 1. https://github.com/kimdanggeun/kimdanggeun.github.io/new/main/.github/workflows → 파일 이름 `daily-update.yml`
+> 2. 저장소의 `docs/workflows/daily-update.yml` 내용 복사 → 붙여넣기 → Commit
+> 3. Actions 탭에서 `김당근 미식 · 매일 데이터 갱신` → Run workflow
+
+### 방법 2 — Pickle 예약 작업 (권한 없이도 동작)
+Pickle 쪽 예약 작업(`🌅 김당근 미식 데이터 갱신`)이 매일 06:10 KST에 같은 스크립트를 돌리고 결과를 커밋·푸시합니다.
+두 방법이 모두 켜져 있으면 `data/last-run.json`의 마지막 실행 시각을 보고 한쪽은 건너뜁니다(`--if-stale 12`).
+
+### 두 러너가 하는 일 (동일)
 
 1. **신규 발굴** `scripts/fetch_new.py` — 다이닝코드 검색 API 로 `지역(78) × 키워드(69)` 조합을 이어서 훑어
    상호·주소·분류·평점이 확인된 곳만 추가. 프랜차이즈·비음식점 제외, 상호(지점 접미사 제거)+도로명+번지로 중복 제거.

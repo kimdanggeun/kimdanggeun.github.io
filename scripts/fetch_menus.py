@@ -90,22 +90,34 @@ def dc_search(query):
     return ps.get('list') or []
 
 
+NOISE = re.compile(r'뷔페|무한리필|무한|직영점|직영|본점|지점|호점|샤브샤브|전문점|전문|식당|레스토랑')
+
+
+def core(name):
+    """상호 비교용 핵심어 — 지점·수식어를 걷어낸다."""
+    return NOISE.sub('', nn(name))
+
+
 def pick_candidate(place, cands):
     name = nn(place.get('n'))
+    c_name = core(place.get('n'))
     gu, dong = gu_of(place.get('a', '')), dong_of(place.get('a', ''))
     best, best_score = None, 0
     for c in cands:
         full = nn((c.get('nm') or '') + (c.get('branch') or ''))
         short = nn(c.get('nm') or '')
+        c_core = core((c.get('nm') or '') + (c.get('branch') or ''))
         score = 0
         if full == name:
-            score = 3
+            score = 4
         elif len(full) >= 4 and len(name) >= 4 and (name.startswith(full) or full.startswith(name)):
             score = 3
         elif short == name:
+            score = 3
+        elif c_core and c_name and c_core == c_name:
             score = 2
-        elif len(short) >= 4 and name.startswith(short):
-            score = 2
+        elif len(c_core) >= 3 and len(c_name) >= 3 and (c_name.startswith(c_core) or c_core.startswith(c_name)):
+            score = 1
         if not score:
             continue
         caddr = (c.get('addr') or '') + ' ' + (c.get('road_addr') or '')
@@ -115,7 +127,7 @@ def pick_candidate(place, cands):
             score += 1
         if score > best_score:
             best, best_score = c, score
-    # 구까지 맞는 후보(4점 이상)만 인정 — 동명이인 오매칭 방지
+    # 구(시)까지 맞는 후보만 인정 — 동명이인 오매칭 방지
     return best if best_score >= 4 else None
 
 
@@ -231,6 +243,7 @@ def main():
     ap.add_argument('--workers', type=int, default=3)
     ap.add_argument('--recheck', type=int, default=0, help='N일 지난 확인 건도 다시 확인')
     ap.add_argument('--max-blocked', type=int, default=25, help='빈 응답이 이만큼 나오면 중단')
+    ap.add_argument('--delay', type=float, default=0.08, help='요청 사이 쉬는 시간(초)')
     args = ap.parse_args()
 
     places = load('places.json', [])
@@ -282,6 +295,7 @@ def main():
                 except StopIteration:
                     break
                 inflight[ex.submit(safe_run, rec, ridmap, cache, nf)] = rec
+                time.sleep(args.delay)
             if not inflight:
                 break
             done_set, _ = wait(list(inflight), return_when=FIRST_COMPLETED)
